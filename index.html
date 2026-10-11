@@ -104,7 +104,7 @@ const WEAPON={
  roll:m=>({atk:Math.round(rnd(5,10)*m)}),   // chỉ số gốc: sát thương 5 đến 9, nhân hệ số độ hiếm m
  act:
  {
-	n:'Đánh hải tặc',d:'Săn hải tặc ngoài khơi.',
+	n:'Đánh hải tặc',d:'Truy nã hải tặc.',
 	req:30,     // lực chiến khuyến nghị (càng thấp hơn thì tỉ lệ thắng càng thấp)
 	sil:20,     // bạc thưởng khi thắng
 	drop:.3,    // tỉ lệ rơi vũ khí khi thắng (0.3 = 30%)
@@ -123,8 +123,11 @@ const CHARM={
  names:['Ngọc Bội Đá','Ngọc Bích','Hổ Phách Bội','Long Ngọc Bội'],
  roll:m=>({def:Math.round(rnd(3,6)*m),res:Math.round(rnd(3,6)*m)}), // giáp 3 đến 6, kháng 3 đến 6, nhân hệ số độ hiếm m
  act:
- {n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',req:220,sil:200,drop:.45,max:4},
- gain:[15,20,25],
+ {
+	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',req:220,sil:200,drop:.45,max:2,
+	days:[2,4,6] // chỉ mở thứ 3 và thứ 5 (0=Chủ nhật, 1=Thứ 2, 2=Thứ 3, 3=Thứ 4, 4=Thứ 5, 5=Thứ 6, 6=Thứ 7)
+ },   
+ gain:[50,100,150],
  chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}]
 };
 
@@ -196,7 +199,11 @@ const find=id=>{for(const k in S.eq)if(S.eq[k]&&S.eq[k].id==id)return S.eq[k];re
 function say(t,bad){S.log.unshift(t);S.log=S.log.slice(0,8);$('msg').textContent=t;$('msg').style.color=bad?'var(--bad)':'var(--ink)'}
 
 // ---- đi 1 hoạt động ----
+const DAY_NAME=['Chủ nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'];
+const isOpen=d=>!d.days||d.days.includes(new Date().getDay());     // hôm nay hoạt động này có mở không
+const openText=d=>d.days.map(x=>DAY_NAME[x]).join(', ');            // ví dụ "Thứ 3, Thứ 5"	
 function run(i){tick();const d=DG[i],k=d.slot,lbl=SL[k].toLowerCase();
+ if(!isOpen(d)){say(`${d.n} chỉ mở vào: ${openText(d)}.`,1);return}				
  if(S.ent[i]>=d.max){say('Hôm nay bạn đã hết lượt: '+d.n+'.',1);return}
  S.ent[i]++;
  S.seal=Math.min(SEAL_STEP*SEAL_MAX,S.seal+SEAL_ACT);       // ấn +điểm
@@ -241,7 +248,7 @@ function render(){tick();
   SK.map(k=>`<div class="slot">${SL[k]}</div>`+(S.eq[k]?card(S.eq[k],1):'<div class="empty">Chưa trang bị</div>')).join('')+
   `<div class="slot">Ngựa</div><div class="empty">${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">Chưa mở, sẽ bổ sung sau</div>`;
  $('dg').innerHTML=DG.map((d,i)=>{const p=Math.round(Math.min(.97,Math.max(.1,power()/d.req*.8))*100);
-  return `<div class="dg"><b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${d.max-S.ent[i]}/${d.max} lượt hôm nay.</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max?'disabled':''}>Đi ngay</button></div>`}).join('');
+  return `<div class="dg"><b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${d.max-S.ent[i]}/${d.max} lượt hôm nay.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
  $('bag').innerHTML=`<p class="empty">${S.bag.length}/${BAG} món</p>`+(S.bag.length?S.bag.map(i=>card(i,0)).join(''):'<div class="empty">Trống. Đi làm hoạt động để tìm trang bị.</div>');
  $('log').innerHTML=S.log.map(t=>`<li>${t}</li>`).join('')||'<li>Chưa có gì xảy ra.</li>';
  $('rs').textContent='Chơi lại từ đầu';armed=false;save()}
@@ -266,8 +273,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]')
  /* =====================================================================
    7. TỰ LUYỆN (tăng EXP theo thời gian)
    ===================================================================== */
-const TRAIN_SEC=5;              // cứ 5 giây...
-const TRAIN_EXP=1;              // ...được 1 EXP
+const TRAIN_SEC=10;              // cứ 5 giây...
+const TRAIN_EXP=2;              // ...được 1 EXP
 const TRAIN_OFFLINE_MAX_H=4;    // tối đa bù bao nhiêu giờ khi tắt trang (0 = không giới hạn)
 
 // tính số EXP đã tích lũy từ lần trước, cộng vào nhân vật. Trả về true nếu có thay đổi
@@ -287,8 +294,8 @@ function trainTick(){
 }
 
 load();trainTick();render();   // thay cho: load();render();if(S.log[0])$('msg').textContent=S.log[0];
-setInterval(()=>{const d=S.day;tick();if(d!==S.day)render()},1000); // tự làm mới lượt khi qua nửa đêm
-setInterval(()=>{if(trainTick())render()},1000);  // đủ 5 giây thì cộng EXP và vẽ lại màn hình
+setInterval(()=>{if(tick())render()},1000); // qua mốc reset thì tự làm mới lượt và vẽ lại màn hình
+setInterval(()=>{if(trainTick())render(1000000)},1000);  // đủ 5 giây thì cộng EXP và vẽ lại màn hình
 </script>
 </body>
 </html>
