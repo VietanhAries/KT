@@ -49,6 +49,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #log{margin:0;padding-left:18px;color:var(--mut);font-size:13px}
 .ico{float:left;width:48px;height:48px;object-fit:contain;margin-right:8px;border-radius:4px}
 .it::after{content:"";display:block;clear:both}
+.hico{width:48px;height:48px;object-fit:contain;vertical-align:middle;margin-right:8px;border-radius:4px}
 .banner{width:100%;height:90px;object-fit:cover;border-radius:4px;margin-bottom:6px}
 @media (max-width:860px){.grid{grid-template-columns:1fr}.track{grid-template-columns:1fr}}
 </style>
@@ -86,15 +87,21 @@ const need=lv=>Math.round(EXP_L1*Math.pow(1+EXP_UP,lv-1)); // EXP cần ở cấ
 // Muốn tăng đều theo cấp 1000, 1050, 1100... thì thay công thức bằng: Math.round(EXP_L1*(1+EXP_UP*(lv-1)))
 
 /* ---- NGỰA (tăng % chỉ số theo cấp nhân vật). Xếp từ cao xuống thấp ---- */
-const HORSES=[{lv:150,n:'Ngựa xịn',p:30},{lv:100,n:'Ngựa tốt',p:20},{lv:60,n:'Ngựa thường',p:10}];
+const HORSES=[ // img = ảnh ngựa (để '' nếu chưa có)
+ {lv:150,n:'Ngựa xịn',p:30,img:'img/horse3.png'},
+ {lv:100,n:'Ngựa tốt',p:20,img:'img/horse2.png'},
+ {lv:60,n:'Ngựa thường',p:10,img:'img/horse1.png'}];
 
 /* ---- ẤN (mỗi hoạt động +điểm, đủ điểm thì lên sao, mỗi sao tăng % chỉ số) ---- */
 const SEAL_ACT=10;                   // điểm ấn mỗi hoạt động
 const SEAL_STEP=1000;                // điểm cho 1 sao
 const SEAL_MAX=10;                   // số sao tối đa
+const SEAL_IMGS={0:'img/seal0.png',10:'img/seal10.png'}; // số sao : ảnh ấn
+const sealImg=()=>{let src='';Object.keys(SEAL_IMGS).map(Number).sort((a,b)=>a-b).forEach(k=>{if(stars()>=k)src=SEAL_IMGS[k]});return src}; // ảnh ấn (để '' nếu chưa có)
 const SEAL_PCT=5;                    // mỗi sao +5% chỉ số
 
 /* ---- PHI PHONG (chưa có, bổ sung sau). Trả về % chỉ số cộng thêm ---- */
+const CLOAK_IMG='img/cloak.png';     // ảnh phi phong (để '' nếu chưa có)
 const cloak=()=>0;
 
 /* =====================================================================
@@ -130,7 +137,7 @@ const CHARM={
  roll:m=>({def:Math.round(rnd(3,6)*m),res:Math.round(rnd(3,6)*m)}), // giáp 3 đến 6, kháng 3 đến 6, nhân hệ số độ hiếm m
  act:
  {
-	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'img/tdlt.png',req:220,sil:200,drop:.45,max:4,
+	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'img/tdlt.png',req:220,sil:200,drop:.45,max:2,
 	days:[2,4,6] // chỉ mở thứ 3 và thứ 5 (0=Chủ nhật, 1=Thứ 2, 2=Thứ 3, 3=Thứ 4, 4=Thứ 5, 5=Thứ 6, 6=Thứ 7)
  },   
  gain:[50,100,150],
@@ -253,13 +260,13 @@ function render(){tick();
   cell('Cấp nhân vật','Cấp '+S.lv,`<div class="bar"><i style="width:${expPc}%"></i></div>`+(S.lv>=LV_MAX?'Cấp tối đa':`EXP ${S.exp}/${need(S.lv)}. Mỗi hoạt động +${EXP_PER_ACT} EXP`))+
   cell('Lực chiến',power(),`Cộng thêm từ ngựa +${h?h.p:0}%, ấn +${st*SEAL_PCT}%, phi phong +${cloak()}%`)+
   cell('Chỉ số','Sát thương '+stat('atk'),`Máu ${stat('hp')}, Giáp ${stat('def')}, Kháng ${stat('res')}`)+
-  cell('Ngựa',h?h.n:'Chưa có',(h?`+${h.p}% chỉ số. `:'')+(nh?`Còn ${nh.lv-S.lv} cấp tới ${nh.n} (cấp ${nh.lv}).`:'Đã ở bậc cao nhất.'))+
-  cell('Ấn',`${st}/${SEAL_MAX} sao`,st>=SEAL_MAX?'Đã tối đa':`${S.seal%SEAL_STEP}/${SEAL_STEP} điểm tới sao kế. Mỗi sao +${SEAL_PCT}% chỉ số. Mỗi hoạt động +${SEAL_ACT} điểm`)+
+  cell('Ngựa',(h?img(h.img,'hico'):'')+(h?h.n:'Chưa có'),(h?`+${h.p}% chỉ số. `:'')+(nh?`Còn ${nh.lv-S.lv} cấp tới ${nh.n} (cấp ${nh.lv}).`:'Đã ở bậc cao nhất.'))+
+  cell('Ấn',img(SEAL_IMG,'hico')+`${st}/${SEAL_MAX} sao`,st>=SEAL_MAX?'Đã tối đa':`${S.seal%SEAL_STEP}/${SEAL_STEP} điểm tới sao kế. Mỗi sao +${SEAL_PCT}% chỉ số. Mỗi hoạt động +${SEAL_ACT} điểm`)+
   cell('Lượt hôm nay','',DG.map((d,i)=>`${d.n}: còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt`).join('<br>'))+
-  cell('Phi phong','Sắp có','Tăng % chỉ số, dựa theo lực chiến, sẽ bổ sung sau');
+  cell('Phi phong',img(CLOAK_IMG,'hico')+'Sắp có','Tăng % chỉ số, dựa theo lực chiến, sẽ bổ sung sau');
  $('char').innerHTML=`<p>Lực chiến <b style="color:var(--gold);font-size:20px">${power()}</b></p>`+
   SK.map(k=>`<div class="slot">${SL[k]}</div>`+(S.eq[k]?card(S.eq[k],1):'<div class="empty">Chưa trang bị</div>')).join('')+
-  `<div class="slot">Ngựa</div><div class="empty">${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">Chưa mở, sẽ bổ sung sau</div>`;
+  `<div class="slot">Ngựa</div><div class="empty">${h?img(h.img,'hico'):''}${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${img(SEAL_IMG,'hico')}${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">${img(CLOAK_IMG,'hico')}Chưa mở, sẽ bổ sung sau</div>`;
  $('dg').innerHTML=DG.map((d,i)=>{const p=Math.round(Math.min(.97,Math.max(.1,power()/d.req*.8))*100);
   return `<div class="dg">${img(d.img,'banner')}<b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt hôm nay.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
  $('bag').innerHTML=`<p class="empty">${S.bag.length}/${BAG} món</p>`+(S.bag.length?S.bag.map(i=>card(i,0)).join(''):'<div class="empty">Trống. Đi làm hoạt động để tìm trang bị.</div>');
@@ -308,7 +315,7 @@ function trainTick(){
 
 load();trainTick();render();   // thay cho: load();render();if(S.log[0])$('msg').textContent=S.log[0];
 setInterval(()=>{if(tick())render()},1000); // qua mốc reset thì tự làm mới lượt và vẽ lại màn hình
-setInterval(()=>{if(trainTick())render(1000000)},1000);  // đủ giây thì cộng EXP và vẽ lại màn hình
+setInterval(()=>{if(trainTick())render(1000000)},1000);  // đủ 5 giây thì cộng EXP và vẽ lại màn hình
 </script>
 </body>
 </html>
