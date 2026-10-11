@@ -47,6 +47,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dg p{margin:2px 0 8px;color:var(--mut);font-size:13px}
 #msg{min-height:22px;font-weight:500;margin-bottom:8px}
 #log{margin:0;padding-left:18px;color:var(--mut);font-size:13px}
+.ico{float:left;width:48px;height:48px;object-fit:contain;margin-right:8px;border-radius:4px}
+.it::after{content:"";display:block;clear:both}
+.banner{width:100%;height:90px;object-fit:cover;border-radius:4px;margin-bottom:6px}
 @media (max-width:860px){.grid{grid-template-columns:1fr}.track{grid-template-columns:1fr}}
 </style>
 </head>
@@ -100,11 +103,13 @@ const cloak=()=>0;
    ===================================================================== */
 const WEAPON={
  label:'Vũ khí',
+ imgs:['img/weapon0.png','img/weapon1.png','img/weapon2.png','img/weapon3.png'], // ảnh theo độ hiếm (Thường, Tốt, Hiếm, Sử thi), cùng thứ tự với names
  names:['Thiết Kiếm','Thanh Phong Kiếm','Huyền Thiết Kiếm','Thanh Long Kiếm'], // tên theo độ hiếm: Thường, Tốt, Hiếm, Sử thi
  roll:m=>({atk:Math.round(rnd(5,10)*m)}),   // chỉ số gốc: sát thương 5 đến 9, nhân hệ số độ hiếm m
  act:
  {
-	n:'Đánh hải tặc',d:'Truy nã hải tặc.',
+	n:'Đánh hải tặc',d:'Truy nã hải tặc.',img:'img/haitac.png', // img = ảnh khung hoạt động (để '' nếu chưa có)
+	
 	req:30,     // lực chiến khuyến nghị (càng thấp hơn thì tỉ lệ thắng càng thấp)
 	sil:20,     // bạc thưởng khi thắng
 	drop:.3,    // tỉ lệ rơi vũ khí khi thắng (0.3 = 30%)
@@ -120,11 +125,12 @@ const WEAPON={
    ===================================================================== */
 const CHARM={
  label:'Trang sức',
+ imgs:['img/charm0.png','img/charm1.png','img/charm2.png','img/charm3.png'],
  names:['Ngọc Bội Đá','Ngọc Bích','Hổ Phách Bội','Long Ngọc Bội'],
  roll:m=>({def:Math.round(rnd(3,6)*m),res:Math.round(rnd(3,6)*m)}), // giáp 3 đến 6, kháng 3 đến 6, nhân hệ số độ hiếm m
  act:
  {
-	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',req:220,sil:200,drop:.45,max:2,
+	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'img/tdlt.png',req:220,sil:200,drop:.45,max:4,
 	days:[2,4,6] // chỉ mở thứ 3 và thứ 5 (0=Chủ nhật, 1=Thứ 2, 2=Thứ 3, 3=Thứ 4, 4=Thứ 5, 5=Thứ 6, 6=Thứ 7)
  },   
  gain:[50,100,150],
@@ -137,9 +143,10 @@ const CHARM={
    ===================================================================== */
 const ARMOR={
  label:'Phòng cụ',
+ imgs:['img/armor0.png','img/armor1.png','img/armor2.png','img/armor3.png'],
  names:['Áo Vải Thô','Giáp Da Thú','Thiết Giáp','Kim Ti Giáp'],
  roll:m=>({hp:Math.round(rnd(40,70)*m)}),   // máu gốc 40 đến 70, nhân hệ số độ hiếm m
- act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',
+ act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',img:'img/tdc.png',
   req:90,sil:1000,drop:.4,max:2},
  gain:[15,20,35],
  chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}]
@@ -171,7 +178,11 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
 // ---- ngày mới: làm mới lượt ----
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
-function tick(){if(S.day!==today()){S.day=today();S.ent=Z()}}
+function tick(){let ch=false;
+ if(S.day!==today()){S.day=today();S.ent=Z();ch=true}               // sang ngày mới: đặt lượt về 0
+ DG.forEach((d,i)=>{if(!(S.ent[i]>=0))S.ent[i]=0;                   // sửa bản lưu hỏng
+  if(S.ent[i]>d.max){S.ent[i]=d.max;ch=true}});                     // bản lưu cũ có số lượt đã dùng lớn hơn max (do bạn giảm max) thì kéo về max
+ return ch}
 
 // ---- danh vọng: cấp theo từng nhánh, và điểm cộng mỗi lượt lấy từ mảng gain của khối tương ứng ----
 const lvl=k=>S.rep[k]>=CAP[1]?3:S.rep[k]>=CAP[0]?2:1;
@@ -190,6 +201,8 @@ const stars=()=>Math.floor(S.seal/SEAL_STEP);
 const pct=()=>{const h=horse();return (h?h.p:0)+stars()*SEAL_PCT+cloak()}; // tổng % cộng từ ngựa + ấn + phi phong
 const stat=k=>Math.round(Object.values(S.eq).reduce((a,i)=>a+(i?v(i[k]||0,i):0),0)*(1+pct()/100));
 const power=()=>Math.round(stat('atk')*2+stat('def')*2+stat('res')*2+stat('hp')/4); // lực chiến tổng
+// chèn ảnh: nếu chưa có file ảnh thì tự ẩn, không hiện icon hỏng
+const img=(src,cls)=>src?`<img class="${cls}" src="${src}" alt="" onerror="this.style.display='none'">`:'';
 const cell=(t,b,s)=>`<div class="cell"><small>${t}</small><b>${b}</b><div class="st">${s}</div></div>`;
 
 // ---- cường hóa / bán ----
@@ -222,14 +235,14 @@ function run(i){tick();const d=DG[i],k=d.slot,lbl=SL[k].toLowerCase();
    5. HIỂN THỊ
    ===================================================================== */
 function stats(i){return [i.atk?'Sát thương '+v(i.atk,i):'',i.hp?'Máu '+v(i.hp,i):'',i.def?'Giáp '+v(i.def,i):'',i.res?'Kháng '+v(i.res,i):''].filter(Boolean).join(', ')+' (lực chiến '+pw(i)+')'}
-function card(i,eq){return `<div class="it r${i.r}"><b>${i.name}${i.lv?' +'+i.lv:''}</b><i class="pill">${R[i.r].n}</i><span class="st">${eq?'':SL[i.slot]+': '}${stats(i)}</span><div class="bt">${eq?'':`<button data-a="eq" data-id="${i.id}">Mặc</button>`}<button data-a="up" data-id="${i.id}" ${i.lv>=10||S.sil<cost(i)?'disabled':''}>${i.lv>=10?'Tối đa':'Cường hóa '+cost(i)+' bạc'}</button>${eq?'':`<button data-a="sell" data-id="${i.id}">Bán +${price(i)}</button>`}</div></div>`}
+function card(i,eq){return `<div class="it r${i.r}">${img(SLOTS[i.slot].imgs[i.r],'ico')}<b>${i.name}${i.lv?' +'+i.lv:''}</b><i class="pill">${R[i.r].n}</i><span class="st">${eq?'':SL[i.slot]+': '}${stats(i)}</span><div class="bt">${eq?'':`<button data-a="eq" data-id="${i.id}">Mặc</button>`}<button data-a="up" data-id="${i.id}" ${i.lv>=10||S.sil<cost(i)?'disabled':''}>${i.lv>=10?'Tối đa':'Cường hóa '+cost(i)+' bạc'}</button>${eq?'':`<button data-a="sell" data-id="${i.id}">Bán +${price(i)}</button>`}</div></div>`}
 
 // ô danh vọng của 1 nhánh: CHỈ hiện cấp hiện tại (mốc chưa nhận quà đầu tiên). Nhận quà xong mới sang cấp kế
 function trackCell(k){const lbl=SL[k].toLowerCase(),ch=SLOTS[k].chests;let x=0;
  while(x<CAP.length&&S.cl.includes(k+CAP[x]))x++;
- if(x>=CAP.length)return `<div class="ms"><div class="mh"><b>Danh vọng ${lbl} tối đa</b><small>${S.rep[k]}/${CAP[2]}. Đã nhận hết quà.</small></div><div class="bar"><i style="width:100%"></i></div></div>`;
+ if(x>=CAP.length)return `<div class="ms"><div class="mh"><b>${SL[k]} tối đa</b><small>${S.rep[k]}/${CAP[2]}. Đã nhận hết quà.</small></div><div class="bar"><i style="width:100%"></i></div></div>`;
  const lo=x?CAP[x-1]:0,tg=CAP[x],m=ch[x],pc=Math.max(0,Math.min(1,(S.rep[k]-lo)/(tg-lo)))*100,can=S.rep[k]>=tg;
- return `<div class="ms"><div class="mh"><b>Danh vọng ${lbl} cấp ${x+1}</b><small>${S.rep[k]}/${tg}. Quà: ${m.sil} bạc và ${lbl} ${R[m.r].n}</small></div><div class="bar"><i style="width:${pc}%"></i></div><button data-a="chest" data-k="${k}" data-x="${x}" ${can?'':'disabled'}>${can?'Mở quà':'Chưa đủ danh vọng'}</button></div>`}
+ return `<div class="ms"><div class="mh"><b>${SL[k]} cấp ${x+1}</b><small>${S.rep[k]}/${tg}. Quà: ${m.sil} bạc và ${lbl} ${R[m.r].n}</small></div><div class="bar"><i style="width:${pc}%"></i></div><button data-a="chest" data-k="${k}" data-x="${x}" ${can?'':'disabled'}>${can?'Mở quà':'Chưa đủ danh vọng'}</button></div>`}
 
 function render(){tick();
  $('top').innerHTML=`<span>Bạc <b>${S.sil}</b></span>`;
@@ -242,13 +255,13 @@ function render(){tick();
   cell('Chỉ số','Sát thương '+stat('atk'),`Máu ${stat('hp')}, Giáp ${stat('def')}, Kháng ${stat('res')}`)+
   cell('Ngựa',h?h.n:'Chưa có',(h?`+${h.p}% chỉ số. `:'')+(nh?`Còn ${nh.lv-S.lv} cấp tới ${nh.n} (cấp ${nh.lv}).`:'Đã ở bậc cao nhất.'))+
   cell('Ấn',`${st}/${SEAL_MAX} sao`,st>=SEAL_MAX?'Đã tối đa':`${S.seal%SEAL_STEP}/${SEAL_STEP} điểm tới sao kế. Mỗi sao +${SEAL_PCT}% chỉ số. Mỗi hoạt động +${SEAL_ACT} điểm`)+
-  cell('Lượt hôm nay','',DG.map((d,i)=>`${d.n}: ${S.ent[i]}/${d.max}`).join('<br>'))+
+  cell('Lượt hôm nay','',DG.map((d,i)=>`${d.n}: còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt`).join('<br>'))+
   cell('Phi phong','Sắp có','Tăng % chỉ số, dựa theo lực chiến, sẽ bổ sung sau');
  $('char').innerHTML=`<p>Lực chiến <b style="color:var(--gold);font-size:20px">${power()}</b></p>`+
   SK.map(k=>`<div class="slot">${SL[k]}</div>`+(S.eq[k]?card(S.eq[k],1):'<div class="empty">Chưa trang bị</div>')).join('')+
   `<div class="slot">Ngựa</div><div class="empty">${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">Chưa mở, sẽ bổ sung sau</div>`;
  $('dg').innerHTML=DG.map((d,i)=>{const p=Math.round(Math.min(.97,Math.max(.1,power()/d.req*.8))*100);
-  return `<div class="dg"><b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${d.max-S.ent[i]}/${d.max} lượt hôm nay.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
+  return `<div class="dg">${img(d.img,'banner')}<b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt hôm nay.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
  $('bag').innerHTML=`<p class="empty">${S.bag.length}/${BAG} món</p>`+(S.bag.length?S.bag.map(i=>card(i,0)).join(''):'<div class="empty">Trống. Đi làm hoạt động để tìm trang bị.</div>');
  $('log').innerHTML=S.log.map(t=>`<li>${t}</li>`).join('')||'<li>Chưa có gì xảy ra.</li>';
  $('rs').textContent='Chơi lại từ đầu';armed=false;save()}
@@ -295,7 +308,7 @@ function trainTick(){
 
 load();trainTick();render();   // thay cho: load();render();if(S.log[0])$('msg').textContent=S.log[0];
 setInterval(()=>{if(tick())render()},1000); // qua mốc reset thì tự làm mới lượt và vẽ lại màn hình
-setInterval(()=>{if(trainTick())render(1000000)},1000);  // đủ 5 giây thì cộng EXP và vẽ lại màn hình
+setInterval(()=>{if(trainTick())render(1000000)},1000);  // đủ giây thì cộng EXP và vẽ lại màn hình
 </script>
 </body>
 </html>
