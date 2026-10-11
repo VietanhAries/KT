@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KT</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Noto+Serif:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== MÀU SẮC: sửa ở đây (sáng / tối) ===== */
+:root{--bg:#eef0ea;--pn:#fbfbf6;--ink:#1d2a26;--mut:#5d6b65;--ln:#c9cfc4;--gold:#8a6a12;--gb:#e9dfba;--r0:#5d6b65;--r1:#1f7a5e;--r2:#2a63a8;--r3:#a06a00;--bad:#a3342a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101a17;--pn:#182622;--ink:#e6ebe4;--mut:#93a39b;--ln:#2d423b;--gold:#d8b45a;--gb:#3a3318;--r0:#9aa59f;--r1:#5fc2a2;--r2:#6fb0ee;--r3:#e8bd55;--bad:#e5786d}}
+:root[data-theme="dark"]{--bg:#101a17;--pn:#182622;--ink:#e6ebe4;--mut:#93a39b;--ln:#2d423b;--gold:#d8b45a;--gb:#3a3318;--r0:#9aa59f;--r1:#5fc2a2;--r2:#6fb0ee;--r3:#e8bd55;--bad:#e5786d}
+html,body{height:auto;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 "Be Vietnam Pro",system-ui,sans-serif}
+h1,h2{font-family:"Noto Serif",Georgia,serif;margin:0}
+main{max-width:1080px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:14px}
+h1{font-size:26px}
+#top b{color:var(--gold);font-size:17px}
+section{background:var(--pn);border:1px solid var(--ln);border-radius:6px;padding:14px;margin-bottom:14px}
+h2{font-size:17px;margin-bottom:10px}
+button{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--gold);background:transparent;color:var(--ink);border-radius:4px;cursor:pointer}
+button:hover:not(:disabled){background:var(--gb)}
+button:disabled{opacity:.45;cursor:default;border-color:var(--ln)}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.track{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ms{display:flex;flex-direction:column;gap:6px}
+.bar{height:8px;background:var(--ln);border-radius:4px;overflow:hidden;margin:4px 0}
+.bar i{display:block;height:100%;background:var(--gold);transition:width .4s}
+.mh b{font-family:"Noto Serif",serif;font-size:16px;display:block}
+.mh small{color:var(--mut);font-size:12px}
+.info{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.cell{border:1px solid var(--ln);border-radius:4px;padding:8px}
+.cell small{color:var(--mut);display:block}
+.cell b{font-family:"Noto Serif",serif;font-size:18px;color:var(--gold)}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid section{margin:0}
+.it{border:1px solid var(--ln);border-left:4px solid var(--c);border-radius:4px;padding:8px;margin-bottom:8px}
+.it b{color:var(--c)}
+.r0{--c:var(--r0)}.r1{--c:var(--r1)}.r2{--c:var(--r2)}.r3{--c:var(--r3)}
+.pill{font-style:normal;font-size:11px;border:1px solid var(--c);color:var(--c);border-radius:10px;padding:0 7px;margin-left:6px}
+.st{display:block;color:var(--mut);font-size:13px;margin:2px 0 6px}
+.bt{display:flex;gap:6px;flex-wrap:wrap}
+.slot{color:var(--mut);font-size:12px;margin:6px 0 3px}
+.empty{color:var(--mut);font-size:13px}
+.dg{border:1px solid var(--ln);border-radius:4px;padding:10px;margin-bottom:8px}
+.dg p{margin:2px 0 8px;color:var(--mut);font-size:13px}
+#msg{min-height:22px;font-weight:500;margin-bottom:8px}
+#log{margin:0;padding-left:18px;color:var(--mut);font-size:13px}
+@media (max-width:860px){.grid{grid-template-columns:1fr}.track{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>KT</h1><div id="top"></div></header>
+<section><h2>Danh vọng</h2><div class="track" id="track"></div></section>
+<section><h2>Thông tin nhân vật</h2><div class="info" id="info"></div></section>
+<div class="grid">
+<section><h2>Nhân vật</h2><div id="char"></div></section>
+<section><h2>Hoạt động</h2><div id="msg"></div><div id="dg"></div></section>
+<section><h2>Hành trang</h2><div id="bag"></div></section>
+</div>
+<section><h2>Nhật ký</h2><ol id="log"></ol>
+<p><button data-a="newday">Qua ngày mới (thử nghiệm)</button> <button data-a="exp">+10.000 EXP (thử nghiệm)</button> <button data-a="rep">+500 danh vọng mọi nhánh (thử nghiệm)</button> <button id="rs" data-a="reset">Chơi lại từ đầu</button></p></section>
+</main>
+<script>
+/* =====================================================================
+   0. CẤU HÌNH CHUNG  (chỉnh các con số dùng chung cho cả game)
+   ===================================================================== */
+const KEY='hanh_lo_v6';              // tên bản lưu. Đổi cấu trúc dữ liệu thì đổi số này để tránh lỗi bản cũ
+const BAG=16;                        // sức chứa hành trang
+const CAP=[1500,3000,4500];          // danh vọng đầy cấp 1 / 2 / 3 (dùng chung cho 3 nhánh)
+const R=[                            // độ hiếm. m = hệ số nhân chỉ số gốc
+ {n:'Thường',m:1},{n:'Tốt',m:1.8},{n:'Hiếm',m:3},{n:'Sử thi',m:5}];
+const ODDS=[0,76,20,4];              // % rơi độ hiếm DV1 / DV2 / DV3 (tổng 100). DV0 chỉ là đồ khởi đầu
+
+/* ---- EXP nhân vật ---- */
+const EXP_PER_ACT=100;               // mỗi lần làm hoạt động +100 EXP
+const EXP_L1=1000;                   // EXP cần để lên cấp 2
+const EXP_UP=0.05;                   // mỗi cấp sau cần nhiều hơn cấp trước 5%
+const LV_MAX=180;                    // cấp tối đa
+const need=lv=>Math.round(EXP_L1*Math.pow(1+EXP_UP,lv-1)); // EXP cần ở cấp lv (tăng 5% so với cấp trước)
+// Muốn tăng đều theo cấp 1000, 1050, 1100... thì thay công thức bằng: Math.round(EXP_L1*(1+EXP_UP*(lv-1)))
+
+/* ---- NGỰA (tăng % chỉ số theo cấp nhân vật). Xếp từ cao xuống thấp ---- */
+const HORSES=[{lv:150,n:'Ngựa xịn',p:30},{lv:100,n:'Ngựa tốt',p:20},{lv:60,n:'Ngựa thường',p:10}];
+
+/* ---- ẤN (mỗi hoạt động +điểm, đủ điểm thì lên sao, mỗi sao tăng % chỉ số) ---- */
+const SEAL_ACT=10;                   // điểm ấn mỗi hoạt động
+const SEAL_STEP=1000;                // điểm cho 1 sao
+const SEAL_MAX=10;                   // số sao tối đa
+const SEAL_PCT=5;                    // mỗi sao +5% chỉ số
+
+/* ---- PHI PHONG (chưa có, bổ sung sau). Trả về % chỉ số cộng thêm ---- */
+const cloak=()=>0;
+
+/* =====================================================================
+   1. VŨ KHÍ  (cộng SÁT THƯƠNG)  -  hoạt động: Đánh hải tặc
+   Muốn chỉnh vũ khí: sửa trong khối WEAPON ngay dưới đây
+   ===================================================================== */
+const WEAPON={
+ label:'Vũ khí',
+ names:['Thiết Kiếm','Thanh Phong Kiếm','Huyền Thiết Kiếm','Thanh Long Kiếm'], // tên theo độ hiếm: Thường, Tốt, Hiếm, Sử thi
+ roll:m=>({atk:Math.round(rnd(5,10)*m)}),   // chỉ số gốc: sát thương 5 đến 9, nhân hệ số độ hiếm m
+ act:
+ {
+	n:'Đánh hải tặc',d:'Săn hải tặc ngoài khơi.',
+	req:30,     // lực chiến khuyến nghị (càng thấp hơn thì tỉ lệ thắng càng thấp)
+	sil:20,     // bạc thưởng khi thắng
+	drop:.3,    // tỉ lệ rơi vũ khí khi thắng (0.3 = 30%)
+	max:10		// số lượt mỗi ngày
+  },   
+ gain:[15,15,15],// danh vọng vũ khí mỗi lượt, theo cấp 1 / 2 / 3
+ chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}] // quà khi đầy cấp 1 / 2 / 3 (bạc, độ hiếm vũ khí)
+};
+
+/* =====================================================================
+   2. TRANG SỨC  (cộng GIÁP và KHÁNG)  -  hoạt động: Phó bản TĐLT
+   Muốn chỉnh trang sức: sửa trong khối CHARM ngay dưới đây
+   ===================================================================== */
+const CHARM={
+ label:'Trang sức',
+ names:['Ngọc Bội Đá','Ngọc Bích','Hổ Phách Bội','Long Ngọc Bội'],
+ roll:m=>({def:Math.round(rnd(3,6)*m),res:Math.round(rnd(3,6)*m)}), // giáp 3 đến 6, kháng 3 đến 6, nhân hệ số độ hiếm m
+ act:
+ {n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',req:220,sil:200,drop:.45,max:4},
+ gain:[15,20,25],
+ chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}]
+};
+
+/* =====================================================================
+   3. PHÒNG CỤ  (cộng MÁU)  -  hoạt động: Phó bản TDC
+   Muốn chỉnh phòng cụ: sửa trong khối ARMOR ngay dưới đây
+   ===================================================================== */
+const ARMOR={
+ label:'Phòng cụ',
+ names:['Áo Vải Thô','Giáp Da Thú','Thiết Giáp','Kim Ti Giáp'],
+ roll:m=>({hp:Math.round(rnd(40,70)*m)}),   // máu gốc 40 đến 70, nhân hệ số độ hiếm m
+ act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',
+  req:90,sil:1000,drop:.4,max:2},
+ gain:[15,20,35],
+ chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}]
+};
+
+/* ---- Gom 3 loại lại. Thứ tự ở đây là thứ tự hiển thị trên màn hình ---- */
+const SLOTS={weapon:WEAPON,armor:ARMOR,charm:CHARM};
+const SK=Object.keys(SLOTS);
+const SL={};SK.forEach(k=>SL[k]=SLOTS[k].label);          // nhãn: SL.weapon = 'Vũ khí'...
+const DG=SK.map(k=>Object.assign({slot:k},SLOTS[k].act)); // danh sách hoạt động, lấy từ 3 khối trên
+const Z=()=>DG.map(()=>0);                                 // bộ đếm lượt trong ngày
+
+/* =====================================================================
+   4. LOGIC GAME  (thường không cần sửa)
+   ===================================================================== */
+const $=id=>document.getElementById(id);
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+let S,armed=false;
+
+// tạo 1 món đồ: lấy tên và chỉ số gốc từ khối của loại đó (WEAPON / CHARM / ARMOR)
+function mk(slot,r){const it={id:S.n++,slot,r,lv:0,name:SLOTS[slot].names[r],atk:0,def:0,res:0,hp:0};
+ return Object.assign(it,SLOTS[slot].roll(R[r].m))}
+function roll(){let x=Math.random()*100;for(let r=1;r<4;r++){if(x<ODDS[r])return r;x-=ODDS[r]}return 1}
+
+function fresh(){S={sil:50,rep:Object.fromEntries(SK.map(k=>[k,0])),lv:1,exp:0,seal:0,day:today(),ent:Z(),n:1,eq:{},bag:[],cl:[],log:[]};
+ S.eq.weapon=mk('weapon',0);S.eq.armor=mk('armor',0);S.eq.charm=null} // đồ khởi đầu: vũ khí và phòng cụ thường
+function load(){try{const t=localStorage.getItem(KEY);if(t){S=JSON.parse(t);return}}catch(e){}fresh()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+// ---- ngày mới: làm mới lượt ----
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
+function tick(){if(S.day!==today()){S.day=today();S.ent=Z()}}
+
+// ---- danh vọng: cấp theo từng nhánh, và điểm cộng mỗi lượt lấy từ mảng gain của khối tương ứng ----
+const lvl=k=>S.rep[k]>=CAP[1]?3:S.rep[k]>=CAP[0]?2:1;
+const gain=k=>S.rep[k]>=CAP[2]?0:SLOTS[k].gain[lvl(k)-1];
+
+// ---- EXP nhân vật ----
+function addExp(n){if(S.lv>=LV_MAX)return;S.exp+=n;
+ while(S.lv<LV_MAX&&S.exp>=need(S.lv)){S.exp-=need(S.lv);S.lv++}
+ if(S.lv>=LV_MAX)S.exp=0}
+
+// ---- chỉ số và lực chiến ----
+const f=i=>1+.1*i.lv,v=(x,i)=>Math.round(x*f(i));            // mỗi cấp cường hóa +10%
+const pw=i=>Math.round((i.atk*2+i.def*2+(i.res||0)*2+i.hp/4)*f(i)); // lực chiến của 1 món
+const horse=()=>HORSES.find(h=>S.lv>=h.lv)||null;
+const stars=()=>Math.floor(S.seal/SEAL_STEP);
+const pct=()=>{const h=horse();return (h?h.p:0)+stars()*SEAL_PCT+cloak()}; // tổng % cộng từ ngựa + ấn + phi phong
+const stat=k=>Math.round(Object.values(S.eq).reduce((a,i)=>a+(i?v(i[k]||0,i):0),0)*(1+pct()/100));
+const power=()=>Math.round(stat('atk')*2+stat('def')*2+stat('res')*2+stat('hp')/4); // lực chiến tổng
+const cell=(t,b,s)=>`<div class="cell"><small>${t}</small><b>${b}</b><div class="st">${s}</div></div>`;
+
+// ---- cường hóa / bán ----
+const cost=i=>20*(i.lv+1)*(i.r+1),price=i=>15*(i.r+1)**2+i.lv*10;
+const find=id=>{for(const k in S.eq)if(S.eq[k]&&S.eq[k].id==id)return S.eq[k];return S.bag.find(i=>i.id==id)};
+
+function say(t,bad){S.log.unshift(t);S.log=S.log.slice(0,8);$('msg').textContent=t;$('msg').style.color=bad?'var(--bad)':'var(--ink)'}
+
+// ---- đi 1 hoạt động ----
+function run(i){tick();const d=DG[i],k=d.slot,lbl=SL[k].toLowerCase();
+ if(S.ent[i]>=d.max){say('Hôm nay bạn đã hết lượt: '+d.n+'.',1);return}
+ S.ent[i]++;
+ S.seal=Math.min(SEAL_STEP*SEAL_MAX,S.seal+SEAL_ACT);       // ấn +điểm
+ const p=Math.min(.97,Math.max(.1,power()/d.req*.8)),lv0=S.lv;
+ addExp(EXP_PER_ACT);                                         // EXP +100
+ const g=gain(k);S.rep[k]=Math.min(CAP[2],S.rep[k]+g);        // danh vọng của nhánh này
+ const win=Math.random()<p;let t;
+ if(win){S.sil+=d.sil;t=`Thắng ${d.n}: +${g} danh vọng ${lbl}, +${d.sil} bạc, +${EXP_PER_ACT} EXP.`;
+  if(Math.random()<d.drop){const it=mk(k,roll());
+   if(S.bag.length<BAG){S.bag.push(it);t+=` Nhặt được ${it.name} (${R[it.r].n}).`}else{S.sil+=price(it);t+=' Hành trang đầy, đồ rơi được bán tự động.'}}}
+ else{const s=Math.round(d.sil*.3);S.sil+=s;t=`Thất bại ở ${d.n}: vẫn +${g} danh vọng ${lbl}, chỉ +${s} bạc, +${EXP_PER_ACT} EXP, không rơi đồ.`}
+ if(S.lv>lv0)t+=` Lên cấp ${S.lv}!`;
+ say(t,!win)}
+
+/* =====================================================================
+   5. HIỂN THỊ
+   ===================================================================== */
+function stats(i){return [i.atk?'Sát thương '+v(i.atk,i):'',i.hp?'Máu '+v(i.hp,i):'',i.def?'Giáp '+v(i.def,i):'',i.res?'Kháng '+v(i.res,i):''].filter(Boolean).join(', ')+' (lực chiến '+pw(i)+')'}
+function card(i,eq){return `<div class="it r${i.r}"><b>${i.name}${i.lv?' +'+i.lv:''}</b><i class="pill">${R[i.r].n}</i><span class="st">${eq?'':SL[i.slot]+': '}${stats(i)}</span><div class="bt">${eq?'':`<button data-a="eq" data-id="${i.id}">Mặc</button>`}<button data-a="up" data-id="${i.id}" ${i.lv>=10||S.sil<cost(i)?'disabled':''}>${i.lv>=10?'Tối đa':'Cường hóa '+cost(i)+' bạc'}</button>${eq?'':`<button data-a="sell" data-id="${i.id}">Bán +${price(i)}</button>`}</div></div>`}
+
+// ô danh vọng của 1 nhánh: CHỈ hiện cấp hiện tại (mốc chưa nhận quà đầu tiên). Nhận quà xong mới sang cấp kế
+function trackCell(k){const lbl=SL[k].toLowerCase(),ch=SLOTS[k].chests;let x=0;
+ while(x<CAP.length&&S.cl.includes(k+CAP[x]))x++;
+ if(x>=CAP.length)return `<div class="ms"><div class="mh"><b>Danh vọng ${lbl} tối đa</b><small>${S.rep[k]}/${CAP[2]}. Đã nhận hết quà.</small></div><div class="bar"><i style="width:100%"></i></div></div>`;
+ const lo=x?CAP[x-1]:0,tg=CAP[x],m=ch[x],pc=Math.max(0,Math.min(1,(S.rep[k]-lo)/(tg-lo)))*100,can=S.rep[k]>=tg;
+ return `<div class="ms"><div class="mh"><b>Danh vọng ${lbl} cấp ${x+1}</b><small>${S.rep[k]}/${tg}. Quà: ${m.sil} bạc và ${lbl} ${R[m.r].n}</small></div><div class="bar"><i style="width:${pc}%"></i></div><button data-a="chest" data-k="${k}" data-x="${x}" ${can?'':'disabled'}>${can?'Mở quà':'Chưa đủ danh vọng'}</button></div>`}
+
+function render(){tick();
+ $('top').innerHTML=`<span>Bạc <b>${S.sil}</b></span>`;
+ $('track').innerHTML=SK.map(trackCell).join('');
+ const h=horse(),st=stars(),nh=HORSES.slice().reverse().find(x=>x.lv>S.lv);
+ const expPc=S.lv>=LV_MAX?100:S.exp/need(S.lv)*100;
+ $('info').innerHTML=
+  cell('Cấp nhân vật','Cấp '+S.lv,`<div class="bar"><i style="width:${expPc}%"></i></div>`+(S.lv>=LV_MAX?'Cấp tối đa':`EXP ${S.exp}/${need(S.lv)}. Mỗi hoạt động +${EXP_PER_ACT} EXP`))+
+  cell('Lực chiến',power(),`Cộng thêm từ ngựa +${h?h.p:0}%, ấn +${st*SEAL_PCT}%, phi phong +${cloak()}%`)+
+  cell('Chỉ số','Sát thương '+stat('atk'),`Máu ${stat('hp')}, Giáp ${stat('def')}, Kháng ${stat('res')}`)+
+  cell('Ngựa',h?h.n:'Chưa có',(h?`+${h.p}% chỉ số. `:'')+(nh?`Còn ${nh.lv-S.lv} cấp tới ${nh.n} (cấp ${nh.lv}).`:'Đã ở bậc cao nhất.'))+
+  cell('Ấn',`${st}/${SEAL_MAX} sao`,st>=SEAL_MAX?'Đã tối đa':`${S.seal%SEAL_STEP}/${SEAL_STEP} điểm tới sao kế. Mỗi sao +${SEAL_PCT}% chỉ số. Mỗi hoạt động +${SEAL_ACT} điểm`)+
+  cell('Lượt hôm nay','',DG.map((d,i)=>`${d.n}: ${S.ent[i]}/${d.max}`).join('<br>'))+
+  cell('Phi phong','Sắp có','Tăng % chỉ số, dựa theo lực chiến, sẽ bổ sung sau');
+ $('char').innerHTML=`<p>Lực chiến <b style="color:var(--gold);font-size:20px">${power()}</b></p>`+
+  SK.map(k=>`<div class="slot">${SL[k]}</div>`+(S.eq[k]?card(S.eq[k],1):'<div class="empty">Chưa trang bị</div>')).join('')+
+  `<div class="slot">Ngựa</div><div class="empty">${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">Chưa mở, sẽ bổ sung sau</div>`;
+ $('dg').innerHTML=DG.map((d,i)=>{const p=Math.round(Math.min(.97,Math.max(.1,power()/d.req*.8))*100);
+  return `<div class="dg"><b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${d.max-S.ent[i]}/${d.max} lượt hôm nay.</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max?'disabled':''}>Đi ngay</button></div>`}).join('');
+ $('bag').innerHTML=`<p class="empty">${S.bag.length}/${BAG} món</p>`+(S.bag.length?S.bag.map(i=>card(i,0)).join(''):'<div class="empty">Trống. Đi làm hoạt động để tìm trang bị.</div>');
+ $('log').innerHTML=S.log.map(t=>`<li>${t}</li>`).join('')||'<li>Chưa có gì xảy ra.</li>';
+ $('rs').textContent='Chơi lại từ đầu';armed=false;save()}
+
+/* =====================================================================
+   6. NÚT BẤM
+   ===================================================================== */
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(!b||b.disabled)return;const a=b.dataset.a,id=b.dataset.id;
+ if(a==='reset'){if(!armed){armed=true;b.textContent='Bấm lại để xóa toàn bộ tiến trình';return}fresh();render();say('Bắt đầu hành trình mới.');return}
+ if(a==='newday'){S.ent=Z();say('Sang ngày mới: lượt hoạt động đã làm mới.')}
+ else if(a==='exp'){const l0=S.lv;addExp(10000);say('Thử nghiệm: +10000 EXP.'+(S.lv>l0?` Lên cấp ${S.lv}.`:''))}
+ else if(a==='rep'){SK.forEach(k=>S.rep[k]=Math.min(CAP[2],S.rep[k]+500));say('Thử nghiệm: +500 danh vọng cho mọi nhánh.')}
+ else if(a==='run')run(+b.dataset.i);
+ else if(a==='eq'){const k=S.bag.findIndex(i=>i.id==id);if(k<0)return;const it=S.bag.splice(k,1)[0],old=S.eq[it.slot];if(old)S.bag.push(old);S.eq[it.slot]=it}
+ else if(a==='up'){const it=find(id);if(it&&it.lv<10&&S.sil>=cost(it)){S.sil-=cost(it);it.lv++}}
+ else if(a==='sell'){const k=S.bag.findIndex(i=>i.id==id);if(k>=0){S.sil+=price(S.bag[k]);S.bag.splice(k,1)}}
+ else if(a==='chest'){const k=b.dataset.k,x=+b.dataset.x,m=SLOTS[k].chests[x],cid=k+CAP[x];
+  if(m&&S.rep[k]>=CAP[x]&&!S.cl.includes(cid)){S.cl.push(cid);S.sil+=m.sil;const it=mk(k,m.r);S.bag.push(it);
+   say(`Mở quà ${SL[k].toLowerCase()} cấp ${x+1}: +${m.sil} bạc và ${it.name} (${R[it.r].n}).`)}}
+ const keep=$('msg').textContent;render();$('msg').textContent=keep});
+ 
+ /* =====================================================================
+   7. TỰ LUYỆN (tăng EXP theo thời gian)
+   ===================================================================== */
+const TRAIN_SEC=5;              // cứ 5 giây...
+const TRAIN_EXP=1;              // ...được 1 EXP
+const TRAIN_OFFLINE_MAX_H=4;    // tối đa bù bao nhiêu giờ khi tắt trang (0 = không giới hạn)
+
+// tính số EXP đã tích lũy từ lần trước, cộng vào nhân vật. Trả về true nếu có thay đổi
+function trainTick(){
+  const now=Date.now();
+  if(!S.trainAt)S.trainAt=now;                                 // lần đầu (hoặc sau khi chơi lại) thì bắt đầu đếm từ bây giờ
+  let el=now-S.trainAt;                                        // thời gian đã trôi qua (ms)
+  if(TRAIN_OFFLINE_MAX_H>0)el=Math.min(el,TRAIN_OFFLINE_MAX_H*3600000);
+  const step=TRAIN_SEC*1000;
+  const n=Math.floor(el/step);                                 // số lần "5 giây" đã đủ
+  if(n<=0)return false;
+  const lv0=S.lv;
+  addExp(n*TRAIN_EXP);
+  S.trainAt=now-(el%step);                                     // giữ lại phần dư chưa đủ 5 giây
+  if(S.lv>lv0)say(`Tự luyện: lên cấp ${S.lv}!`);
+  return true;
+}
+
+load();trainTick();render();   // thay cho: load();render();if(S.log[0])$('msg').textContent=S.log[0];
+setInterval(()=>{const d=S.day;tick();if(d!==S.day)render()},1000); // tự làm mới lượt khi qua nửa đêm
+setInterval(()=>{if(trainTick())render()},1000);  // đủ 5 giây thì cộng EXP và vẽ lại màn hình
+</script>
+</body>
+</html>
