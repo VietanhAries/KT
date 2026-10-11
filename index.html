@@ -96,8 +96,9 @@ const HORSES=[ // img = ảnh ngựa (để '' nếu chưa có)
 const SEAL_ACT=10;                   // điểm ấn mỗi hoạt động
 const SEAL_STEP=1000;                // điểm cho 1 sao
 const SEAL_MAX=10;                   // số sao tối đa
-const SEAL_IMGS={0:'img/seal0.png',10:'img/seal10.png'}; // số sao : ảnh ấn
-const sealImg=()=>{let src='';Object.keys(SEAL_IMGS).map(Number).sort((a,b)=>a-b).forEach(k=>{if(stars()>=k)src=SEAL_IMGS[k]});return src}; // ảnh ấn (để '' nếu chưa có)
+const SEAL_IMGS={0:'img/seal0.png',10:'img/seal10.png'}; // số sao : ảnh ấn. Muốn thêm mốc thì thêm dạng 5:'img/seal5.png'
+// chọn ảnh theo số sao hiện tại: lấy ảnh của mốc cao nhất mà số sao đã đạt (1 đến 9 sao dùng ảnh 0 sao)
+const sealImg=()=>{let src='';Object.keys(SEAL_IMGS).map(Number).sort((a,b)=>a-b).forEach(k=>{if(stars()>=k)src=SEAL_IMGS[k]});return src};
 const SEAL_PCT=5;                    // mỗi sao +5% chỉ số
 
 /* ---- PHI PHONG (chưa có, bổ sung sau). Trả về % chỉ số cộng thêm ---- */
@@ -137,7 +138,7 @@ const CHARM={
  roll:m=>({def:Math.round(rnd(3,6)*m),res:Math.round(rnd(3,6)*m)}), // giáp 3 đến 6, kháng 3 đến 6, nhân hệ số độ hiếm m
  act:
  {
-	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'img/tdlt.png',req:220,sil:200,drop:.45,max:2,
+	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'img/tdlt.png',req:220,sil:200,drop:.45,max:3,
 	days:[2,4,6] // chỉ mở thứ 3 và thứ 5 (0=Chủ nhật, 1=Thứ 2, 2=Thứ 3, 3=Thứ 4, 4=Thứ 5, 5=Thứ 6, 6=Thứ 7)
  },   
  gain:[50,100,150],
@@ -261,12 +262,12 @@ function render(){tick();
   cell('Lực chiến',power(),`Cộng thêm từ ngựa +${h?h.p:0}%, ấn +${st*SEAL_PCT}%, phi phong +${cloak()}%`)+
   cell('Chỉ số','Sát thương '+stat('atk'),`Máu ${stat('hp')}, Giáp ${stat('def')}, Kháng ${stat('res')}`)+
   cell('Ngựa',(h?img(h.img,'hico'):'')+(h?h.n:'Chưa có'),(h?`+${h.p}% chỉ số. `:'')+(nh?`Còn ${nh.lv-S.lv} cấp tới ${nh.n} (cấp ${nh.lv}).`:'Đã ở bậc cao nhất.'))+
-  cell('Ấn',img(SEAL_IMG,'hico')+`${st}/${SEAL_MAX} sao`,st>=SEAL_MAX?'Đã tối đa':`${S.seal%SEAL_STEP}/${SEAL_STEP} điểm tới sao kế. Mỗi sao +${SEAL_PCT}% chỉ số. Mỗi hoạt động +${SEAL_ACT} điểm`)+
+  cell('Ấn',img(sealImg(),'hico')+`${st}/${SEAL_MAX} sao`,st>=SEAL_MAX?'Đã tối đa':`${S.seal%SEAL_STEP}/${SEAL_STEP} điểm tới sao kế. Mỗi sao +${SEAL_PCT}% chỉ số. Mỗi hoạt động +${SEAL_ACT} điểm`)+
   cell('Lượt hôm nay','',DG.map((d,i)=>`${d.n}: còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt`).join('<br>'))+
   cell('Phi phong',img(CLOAK_IMG,'hico')+'Sắp có','Tăng % chỉ số, dựa theo lực chiến, sẽ bổ sung sau');
  $('char').innerHTML=`<p>Lực chiến <b style="color:var(--gold);font-size:20px">${power()}</b></p>`+
   SK.map(k=>`<div class="slot">${SL[k]}</div>`+(S.eq[k]?card(S.eq[k],1):'<div class="empty">Chưa trang bị</div>')).join('')+
-  `<div class="slot">Ngựa</div><div class="empty">${h?img(h.img,'hico'):''}${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${img(SEAL_IMG,'hico')}${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">${img(CLOAK_IMG,'hico')}Chưa mở, sẽ bổ sung sau</div>`;
+  `<div class="slot">Ngựa</div><div class="empty">${h?img(h.img,'hico'):''}${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${img(sealImg(),'hico')}${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">${img(CLOAK_IMG,'hico')}Chưa mở, sẽ bổ sung sau</div>`;
  $('dg').innerHTML=DG.map((d,i)=>{const p=Math.round(Math.min(.97,Math.max(.1,power()/d.req*.8))*100);
   return `<div class="dg">${img(d.img,'banner')}<b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt hôm nay.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
  $('bag').innerHTML=`<p class="empty">${S.bag.length}/${BAG} món</p>`+(S.bag.length?S.bag.map(i=>card(i,0)).join(''):'<div class="empty">Trống. Đi làm hoạt động để tìm trang bị.</div>');
@@ -293,8 +294,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]')
  /* =====================================================================
    7. TỰ LUYỆN (tăng EXP theo thời gian)
    ===================================================================== */
-const TRAIN_SEC=10;              // cứ 5 giây...
-const TRAIN_EXP=2;              // ...được 1 EXP
+const TRAIN_SEC=60;              // cứ 60 giây...
+const TRAIN_EXP=12;              // ...được 12 EXP
 const TRAIN_OFFLINE_MAX_H=4;    // tối đa bù bao nhiêu giờ khi tắt trang (0 = không giới hạn)
 
 // tính số EXP đã tích lũy từ lần trước, cộng vào nhân vật. Trả về true nếu có thay đổi
