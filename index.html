@@ -88,21 +88,21 @@ const need=lv=>Math.round(EXP_L1*Math.pow(1+EXP_UP,lv-1)); // EXP cần ở cấ
 
 /* ---- NGỰA (tăng % chỉ số theo cấp nhân vật). Xếp từ cao xuống thấp ---- */
 const HORSES=[ // img = ảnh ngựa (để '' nếu chưa có)
- {lv:150,n:'Ngựa xịn',p:30,img:'image/horse3.png'},
- {lv:100,n:'Ngựa tốt',p:20,img:'image/horse2.png'},
- {lv:60,n:'Ngựa thường',p:10,img:'image/horse1.png'}];
+ {lv:150,n:'Ngựa xịn',p:30,img:'img/horse3.png'},
+ {lv:100,n:'Ngựa tốt',p:20,img:'img/horse2.png'},
+ {lv:60,n:'Ngựa thường',p:10,img:'img/horse1.png'}];
 
 /* ---- ẤN (mỗi hoạt động +điểm, đủ điểm thì lên sao, mỗi sao tăng % chỉ số) ---- */
 const SEAL_ACT=10;                   // điểm ấn mỗi hoạt động
 const SEAL_STEP=1000;                // điểm cho 1 sao
 const SEAL_MAX=10;                   // số sao tối đa
-const SEAL_IMGS={0:'image/seal0.png',10:'image/seal10.png'}; // số sao : ảnh ấn. Muốn thêm mốc thì thêm dạng 5:'image/seal5.png'
+const SEAL_IMGS={0:'img/seal0.png',10:'img/seal10.png'}; // số sao : ảnh ấn. Muốn thêm mốc thì thêm dạng 5:'img/seal5.png'
 // chọn ảnh theo số sao hiện tại: lấy ảnh của mốc cao nhất mà số sao đã đạt (1 đến 9 sao dùng ảnh 0 sao)
 const sealImg=()=>{let src='';Object.keys(SEAL_IMGS).map(Number).sort((a,b)=>a-b).forEach(k=>{if(stars()>=k)src=SEAL_IMGS[k]});return src};
 const SEAL_PCT=5;                    // mỗi sao +5% chỉ số
 
 /* ---- PHI PHONG (chưa có, bổ sung sau). Trả về % chỉ số cộng thêm ---- */
-const CLOAK_IMG='image/cloak.png';     // ảnh phi phong (để '' nếu chưa có)
+const CLOAK_IMG='img/cloak.png';     // ảnh phi phong (để '' nếu chưa có)
 const cloak=()=>0;
 
 /* =====================================================================
@@ -111,12 +111,12 @@ const cloak=()=>0;
    ===================================================================== */
 const WEAPON={
  label:'Vũ khí',
- imgs:['image/weapon0.png','image/weapon1.png','image/weapon2.png','image/weapon3.png'], // ảnh theo độ hiếm (Thường, Tốt, Hiếm, Sử thi), cùng thứ tự với names
+ imgs:['img/weapon0.png','img/weapon1.png','img/weapon2.png','img/weapon3.png'], // ảnh theo độ hiếm (Thường, Tốt, Hiếm, Sử thi), cùng thứ tự với names
  names:['Thiết Kiếm','Thanh Phong Kiếm','Huyền Thiết Kiếm','Thanh Long Kiếm'], // tên theo độ hiếm: Thường, Tốt, Hiếm, Sử thi
  roll:m=>({atk:Math.round(rnd(5,10)*m)}),   // chỉ số gốc: sát thương 5 đến 9, nhân hệ số độ hiếm m
  act:
  {
-	n:'Đánh hải tặc',d:'Truy nã hải tặc.',img:'image/haitac.png', // img = ảnh khung hoạt động (để '' nếu chưa có)
+	n:'Đánh hải tặc',d:'Truy nã hải tặc.',img:'img/haitac.png', // img = ảnh khung hoạt động (để '' nếu chưa có)
 	
 	req:30,     // lực chiến khuyến nghị (càng thấp hơn thì tỉ lệ thắng càng thấp)
 	sil:20,     // bạc thưởng khi thắng
@@ -134,12 +134,12 @@ const WEAPON={
    ===================================================================== */
 const CHARM={
  label:'Trang sức',
- imgs:['image/charm0.png','image/charm1.png','image/charm2.png','image/charm3.png'],
+ imgs:['img/charm0.png','img/charm1.png','img/charm2.png','img/charm3.png'],
  names:['Ngọc Bội Đá','Ngọc Bích','Hổ Phách Bội','Long Ngọc Bội'],
  roll:m=>({def:Math.round(rnd(3,6)*m),res:Math.round(rnd(3,6)*m)}), // giáp 3 đến 6, kháng 3 đến 6, nhân hệ số độ hiếm m
  act:
  {
-	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'image/tdlt.png',req:220,sil:200,drop:.45,max:2,
+	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'img/tdlt.png',req:220,sil:200,drop:.45,max:2,
 	reset:[0,12],  // giờ reset lượt: 0h đêm và 12h trưa, lượt cũ không cộng dồn
 	days:[2,4,6] // chỉ mở thứ 3 và thứ 5 (0=Chủ nhật, 1=Thứ 2, 2=Thứ 3, 3=Thứ 4, 4=Thứ 5, 5=Thứ 6, 6=Thứ 7)
  },   
@@ -153,10 +153,10 @@ const CHARM={
    ===================================================================== */
 const ARMOR={
  label:'Phòng cụ',
- imgs:['image/armor0.png','image/armor1.png','image/armor2.png','image/armor3.png'],
+ imgs:['img/armor0.png','img/armor1.png','img/armor2.png','img/armor3.png'],
  names:['Áo Vải Thô','Giáp Da Thú','Thiết Giáp','Kim Ti Giáp'],
  roll:m=>({hp:Math.round(rnd(40,70)*m)}),   // máu gốc 40 đến 70, nhân hệ số độ hiếm m
- act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',img:'image/tdc.png',
+ act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',img:'img/tdc.png',
   req:90,sil:1000,drop:.4,max:2,reset:[0,12]},
  gain:[15,20,35],
  chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}]
