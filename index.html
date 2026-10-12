@@ -53,21 +53,53 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #pick{display:none}.picking #pick{display:block}.picking>section,.picking>.grid{display:none}
 .banner{width:100%;height:90px;object-fit:cover;border-radius:4px;margin-bottom:6px}
 @media (max-width:860px){.grid{grid-template-columns:1fr}.track{grid-template-columns:1fr}}
+/* ===== NHẬT KÝ: nút nhỏ ở góc phải trên, bấm mở danh sách (không chiếm chỗ) ===== */
+.hr{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#sec-log{position:relative}
+#sec-log summary{cursor:pointer;list-style:none;border:1px solid var(--gold);border-radius:4px;padding:3px 10px;font-size:13px}
+#sec-log summary::-webkit-details-marker{display:none}
+.logbox{position:absolute;right:0;top:calc(100% + 6px);width:min(440px,92vw);max-height:70vh;overflow:auto;background:var(--pn);border:1px solid var(--ln);border-radius:6px;padding:10px;z-index:20}
+/* ===== BỐ CỤC GỌN 1 MÀN HÌNH (màn hình rộng từ 1001px). Màn nhỏ hơn vẫn cuộn như cũ ===== */
+@media (min-width:1001px){
+ body{overflow:hidden;font-size:13px;line-height:1.4}
+ main{max-width:none;box-sizing:border-box;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));padding:8px 10px;display:grid;gap:8px;
+  grid-template-columns:1fr 1.15fr 1fr 1fr;grid-template-rows:auto auto minmax(0,1fr);
+  grid-template-areas:"head head head head" "rep rep rep rep" "char act info bag"}   /* sắp xếp: 4 cột ở hàng dưới. Muốn đổi vị trí thì đổi tên trong dòng này */
+ header{grid-area:head;margin:0}
+ h1{font-size:20px}
+ #sec-rep{grid-area:rep}#sec-char{grid-area:char}#sec-act{grid-area:act}#sec-info{grid-area:info}#sec-bag{grid-area:bag}
+ .grid{display:contents}
+ section{margin:0;padding:8px 10px;min-width:0;min-height:0;overflow:auto}
+ h2{font-size:14px;margin-bottom:6px}
+ #sec-rep h2{display:none}
+ #pick{grid-column:1/-1;grid-row:2/4;overflow:auto}
+ button{padding:3px 8px;font-size:12px}
+ .track{gap:8px}
+ .ms{display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:center}
+ .ms .mh{grid-column:1/-1}.ms .bar{margin:0}
+ .mh b{font-size:14px}
+ .info{grid-template-columns:1fr 1fr;gap:6px}
+ .cell{padding:5px 7px}.cell b{font-size:15px}.cell small,.st{font-size:11px;margin:1px 0}
+ .it{padding:5px 7px;margin-bottom:5px}
+ .ico{width:36px;height:36px}.hico{width:32px;height:32px}
+ .dg{padding:7px;margin-bottom:6px}.dg p{margin:2px 0 6px;font-size:12px}
+ .banner{height:48px;margin-bottom:4px}
+ #msg{min-height:18px;margin-bottom:4px;font-size:12px}
+}
 </style>
 </head>
 <body>
 <main>
-<header><h1>KT</h1><div id="top"></div></header>
+<header><h1>KT</h1><div class="hr"><div id="top"></div><details id="sec-log"><summary>Nhật ký</summary><div class="logbox"><ol id="log"></ol>
+<p><button data-a="newday">Qua ngày mới (thử nghiệm)</button> <button data-a="exp">+10.000 EXP (thử nghiệm)</button> <button data-a="rep">+500 danh vọng mọi nhánh (thử nghiệm)</button> <button id="rs" data-a="reset">Chơi lại từ đầu</button></p></div></details></div></header>
 <div id="pick"></div>
-<section><h2>Danh vọng</h2><div class="track" id="track"></div></section>
-<section><h2>Thông tin nhân vật</h2><div class="info" id="info"></div></section>
+<section id="sec-rep"><h2>Danh vọng</h2><div class="track" id="track"></div></section>
+<section id="sec-info"><h2>Thông tin nhân vật</h2><div class="info" id="info"></div></section>
 <div class="grid">
-<section><h2>Nhân vật</h2><div id="char"></div></section>
-<section><h2>Hoạt động</h2><div id="msg"></div><div id="dg"></div></section>
-<section><h2>Hành trang</h2><div id="bag"></div></section>
+<section id="sec-char"><h2>Nhân vật</h2><div id="char"></div></section>
+<section id="sec-act"><h2>Hoạt động</h2><div id="msg"></div><div id="dg"></div></section>
+<section id="sec-bag"><h2>Hành trang</h2><div id="bag"></div></section>
 </div>
-<section><h2>Nhật ký</h2><ol id="log"></ol>
-<p><button data-a="newday">Qua ngày mới (thử nghiệm)</button> <button data-a="exp">+10.000 EXP (thử nghiệm)</button> <button data-a="rep">+500 danh vọng mọi nhánh (thử nghiệm)</button> <button id="rs" data-a="reset">Chơi lại từ đầu</button></p></section>
 </main>
 <script>
 /* =====================================================================
@@ -75,8 +107,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
    ===================================================================== */
 const KEY='hanh_lo_v6';              // tên bản lưu. Đổi cấu trúc dữ liệu thì đổi số này để tránh lỗi bản cũ
 const IMG_DIR='img/';                 // thư mục ảnh trong repo (đổi đúng 1 chỗ này khi đổi tên thư mục)
-const IMG_ALT='image/';              // thư mục dự phòng: ảnh không có ở IMG_DIR thì thử tiếp ở đây
-const BAG=16;                        // sức chứa hành trang
+const BAG=20;                        // sức chứa hành trang
 const CAP=[1500,3000,4500];          // danh vọng đầy cấp 1 / 2 / 3 (dùng chung cho 3 nhánh)
 const R=[                            // độ hiếm. m = hệ số nhân chỉ số gốc
  {n:'Thường',m:1},{n:'Tốt',m:1.8},{n:'Hiếm',m:3},{n:'Sử thi',m:5}];
@@ -280,9 +311,16 @@ const f=i=>1+.1*i.lv,v=(x,i)=>Math.round(x*f(i));            // mỗi cấp cư�
 const pw=i=>Math.round((i.atk*2+i.def*2+(i.res||0)*2+i.hp/4)*f(i)); // lực chiến của 1 món
 const horse=()=>HORSES.find(h=>S.lv>=h.lv)||null;
 const stars=()=>Math.floor(S.seal/SEAL_STEP);
-const pct=()=>{const h=horse();return (h?h.p:0)+stars()*SEAL_PCT+cloak()}; // tổng % cộng từ ngựa + ấn + phi phong
-const stat=k=>Math.round((Object.values(S.eq).reduce((a,i)=>a+(i?v(i[k]||0,i):0),0)+(S.bonus&&S.bonus[k]||0))*(1+pct()/100)); // (đồ + chỉ số điểm danh) x (1 + % ngựa/ấn/phi phong)
-const power=()=>Math.round(stat('atk')*2+stat('def')*2+stat('res')*2+stat('hp')/4); // lực chiến tổng
+const pctBase=()=>{const h=horse();return (h?h.p:0)+stars()*SEAL_PCT}; // % cộng từ ngựa + ấn (chưa có phi phong)
+const pct=()=>pctBase()+cloak();                                       // tổng % cộng: ngựa + ấn + phi phong
+const statX=(k,c)=>Math.round((Object.values(S.eq).reduce((a,i)=>a+(i?v(i[k]||0,i):0),0)+(S.bonus&&S.bonus[k]||0))*(1+(c?pct():pctBase())/100)); // (đồ + chỉ số điểm danh) x (1 + %). c=true thì tính cả phi phong
+const stat=k=>statX(k,true);
+const powerOf=c=>Math.round(statX('atk',c)*2+statX('def',c)*2+statX('res',c)*2+statX('hp',c)/4);
+const power=()=>powerOf(true);       // lực chiến tổng (đã có phi phong)
+const rawPower=()=>powerOf(false);   // lực chiến CHƯA tính phi phong, dùng để mở phi phong (tránh vòng lặp)
+const cloakTier=()=>Math.min(CLOAKS.length,Math.floor(rawPower()/CLOAK_STEP)); // 0 = chưa mở
+const cloakNow=()=>{const t=cloakTier();return t?CLOAKS[t-1]:null};
+const cloak=()=>{const c=cloakNow();return c?c.p:0};                              // % chỉ số từ phi phong
 // chèn ảnh: nếu chưa có file ảnh thì tự ẩn, không hiện icon hỏng
 const img=(f,cls)=>f?`<img class="${cls}" src="${IMG_DIR}${f}" alt="" onerror="if(!this.dataset.r){this.dataset.r=1;this.src='${IMG_ALT}${f}'}else{this.style.display='none'}">`:'';
 const cell=(t,b,s)=>`<div class="cell"><small>${t}</small><b>${b}</b><div class="st">${s}</div></div>`;
@@ -351,7 +389,7 @@ function render(){tick();
  const cd=S.ci.last===dayKey();
  $('top').innerHTML=`<span>Phái <b>${PHAI[S.phai].n}</b></span><span style="margin-left:16px">Bạc <b>${S.sil}</b></span> <button style="margin-left:16px" data-a="checkin" ${cd?'disabled':''}>${cd?'Đã điểm danh, chuỗi '+S.ci.streak+' ngày':'Điểm danh'}</button>`;
  $('track').innerHTML=SK.map(trackCell).join('');
- const h=horse(),st=stars(),nh=HORSES.slice().reverse().find(x=>x.lv>S.lv);
+ const h=horse(),st=stars(),nh=HORSES.slice().reverse().find(x=>x.lv>S.lv),cl=cloakNow(),ct=cloakTier();
  const expPc=S.lv>=LV_MAX?100:S.exp/need(S.lv)*100;
  $('info').innerHTML=
   cell('Cấp nhân vật','Cấp '+S.lv,`<div class="bar"><i style="width:${expPc}%"></i></div>`+(S.lv>=LV_MAX?'Cấp tối đa':`EXP ${S.exp}/${need(S.lv)}. Mỗi hoạt động +${EXP_PER_ACT} EXP`))+
@@ -362,10 +400,10 @@ function render(){tick();
   cell('Điểm danh','Chuỗi '+streakNow()+' ngày',`Chỉ số cộng thêm: ${Object.keys(STAT_NAME).map(k=>STAT_NAME[k]+' +'+(S.bonus[k]||0)).join(', ')}. Quà ấn tháng này: ${S.ci.mon===monKey()?S.ci.seal:0}/${CI_SEAL_MAX}`)+
   cell('May mắn cường hóa','+'+S.luck+'%',`Mỗi lần thất bại +${UP_LUCK}%, cường hóa thành công thì về 0%`)+
   cell('Lượt hôm nay','',DG.map((d,i)=>`${d.n}: còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt`).join('<br>'))+
-  cell('Phi phong',img(CLOAK_IMG,'hico')+'Sắp có','Tăng % chỉ số, dựa theo lực chiến, sẽ bổ sung sau');
+  cell('Phi phong',cl?img(cl.img,'hico')+cl.n:img(CLOAK_IMG,'hico')+'Chưa mở',cl?`+${cl.p}% chỉ số. Bậc ${ct}/${CLOAKS.length}. `+(ct<CLOAKS.length?`Đạt lực chiến ${(ct+1)*CLOAK_STEP} để lên ${CLOAKS[ct].n}.`:'Đã ở bậc cao nhất.'):`Cần lực chiến ${CLOAK_STEP} (hiện ${rawPower()}).`);
  $('char').innerHTML=`<p>Lực chiến <b style="color:var(--gold);font-size:20px">${power()}</b></p>`+
   SK.map(k=>`<div class="slot">${SL[k]}</div>`+(S.eq[k]?card(S.eq[k],1):'<div class="empty">Chưa trang bị</div>')).join('')+
-  `<div class="slot">Ngựa</div><div class="empty">${h?img(h.img,'hico'):''}${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${img(sealImg(),'hico')}${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">${img(CLOAK_IMG,'hico')}Chưa mở, sẽ bổ sung sau</div>`;
+  `<div class="slot">Ngựa</div><div class="empty">${h?img(h.img,'hico'):''}${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${img(sealImg(),'hico')}${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">${cl?img(cl.img,'hico')+cl.n+', +'+cl.p+'% chỉ số':img(CLOAK_IMG,'hico')+'Chưa mở, cần lực chiến '+CLOAK_STEP}</div>`;
  $('dg').innerHTML=DG.map((d,i)=>{const p=Math.round(Math.min(.97,Math.max(.1,power()/d.req*.8))*100);
   return `<div class="dg">${img(d.img,'banner')}<b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt đợt này.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
  $('bag').innerHTML=`<p class="empty">${S.bag.length}/${BAG} món</p>`+(S.bag.length?S.bag.map(i=>card(i,0)).join(''):'<div class="empty">Trống. Đi làm hoạt động để tìm trang bị.</div>');
@@ -398,8 +436,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]')
  /* =====================================================================
    7. TỰ LUYỆN (tăng EXP theo thời gian)
    ===================================================================== */
-const TRAIN_SEC=10;              // cứ 5 giây...
-const TRAIN_EXP=2;              // ...được 1 EXP
+const TRAIN_SEC=100;              // cứ 100 giây...
+const TRAIN_EXP=50;              // ...được 50 EXP
 const TRAIN_OFFLINE_MAX_H=4;    // tối đa bù bao nhiêu giờ khi tắt trang (0 = không giới hạn)
 
 // tính số EXP đã tích lũy từ lần trước, cộng vào nhân vật. Trả về true nếu có thay đổi
