@@ -93,10 +93,10 @@ const HORSES=[ // img = ảnh ngựa (để '' nếu chưa có)
  {lv:60,n:'Ngựa thường',p:10,img:'img/horse1.png'}];
 
 /* ---- ẤN (mỗi hoạt động +điểm, đủ điểm thì lên sao, mỗi sao tăng % chỉ số) ---- */
-const SEAL_ACT=10;                   // điểm ấn mỗi hoạt động
+const SEAL_ACT=100;                   // điểm ấn mỗi hoạt động
 const SEAL_STEP=1000;                // điểm cho 1 sao
 const SEAL_MAX=10;                   // số sao tối đa
-const SEAL_IMGS={0:'img/seal0.png',10:'img/seal10.png'}; // số sao : ảnh ấn. Muốn thêm mốc thì thêm dạng 5:'img/seal5.png'
+const SEAL_IMGS={0:'img/seal0.png',5:'img/seal5.png',10:'img/seal10.png'}; // số sao : ảnh ấn. Muốn thêm mốc thì thêm dạng 5:'img/seal5.png'
 // chọn ảnh theo số sao hiện tại: lấy ảnh của mốc cao nhất mà số sao đã đạt (1 đến 9 sao dùng ảnh 0 sao)
 const sealImg=()=>{let src='';Object.keys(SEAL_IMGS).map(Number).sort((a,b)=>a-b).forEach(k=>{if(stars()>=k)src=SEAL_IMGS[k]});return src};
 const SEAL_PCT=5;                    // mỗi sao +5% chỉ số
@@ -309,7 +309,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]')
    7. TỰ LUYỆN (tăng EXP theo thời gian)
    ===================================================================== */
 const TRAIN_SEC=100;              // cứ 5 giây...
-const TRAIN_EXP=20;              // ...được 1 EXP
+const TRAIN_EXP=50;              // ...được 1 EXP
 const TRAIN_OFFLINE_MAX_H=4;    // tối đa bù bao nhiêu giờ khi tắt trang (0 = không giới hạn)
 
 // tính số EXP đã tích lũy từ lần trước, cộng vào nhân vật. Trả về true nếu có thay đổi
