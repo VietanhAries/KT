@@ -88,21 +88,21 @@ const need=lv=>Math.round(EXP_L1*Math.pow(1+EXP_UP,lv-1)); // EXP cần ở cấ
 
 /* ---- NGỰA (tăng % chỉ số theo cấp nhân vật). Xếp từ cao xuống thấp ---- */
 const HORSES=[ // img = ảnh ngựa (để '' nếu chưa có)
- {lv:150,n:'Ngựa xịn',p:30,img:'img/horse3.png'},
- {lv:100,n:'Ngựa tốt',p:20,img:'img/horse2.png'},
- {lv:60,n:'Ngựa thường',p:10,img:'img/horse1.png'}];
+ {lv:150,n:'Ngựa xịn',p:30,img:'image/horse3.png'},
+ {lv:100,n:'Ngựa tốt',p:20,img:'image/horse2.png'},
+ {lv:60,n:'Ngựa thường',p:10,img:'image/horse1.png'}];
 
 /* ---- ẤN (mỗi hoạt động +điểm, đủ điểm thì lên sao, mỗi sao tăng % chỉ số) ---- */
 const SEAL_ACT=10;                   // điểm ấn mỗi hoạt động
 const SEAL_STEP=1000;                // điểm cho 1 sao
 const SEAL_MAX=10;                   // số sao tối đa
-const SEAL_IMGS={0:'img/seal0.png',10:'img/seal10.png'}; // số sao : ảnh ấn. Muốn thêm mốc thì thêm dạng 5:'img/seal5.png'
+const SEAL_IMGS={0:'image/seal0.png',10:'image/seal10.png'}; // số sao : ảnh ấn. Muốn thêm mốc thì thêm dạng 5:'image/seal5.png'
 // chọn ảnh theo số sao hiện tại: lấy ảnh của mốc cao nhất mà số sao đã đạt (1 đến 9 sao dùng ảnh 0 sao)
 const sealImg=()=>{let src='';Object.keys(SEAL_IMGS).map(Number).sort((a,b)=>a-b).forEach(k=>{if(stars()>=k)src=SEAL_IMGS[k]});return src};
 const SEAL_PCT=5;                    // mỗi sao +5% chỉ số
 
 /* ---- PHI PHONG (chưa có, bổ sung sau). Trả về % chỉ số cộng thêm ---- */
-const CLOAK_IMG='img/cloak.png';     // ảnh phi phong (để '' nếu chưa có)
+const CLOAK_IMG='image/cloak.png';     // ảnh phi phong (để '' nếu chưa có)
 const cloak=()=>0;
 
 /* =====================================================================
@@ -111,17 +111,18 @@ const cloak=()=>0;
    ===================================================================== */
 const WEAPON={
  label:'Vũ khí',
- imgs:['img/weapon0.png','img/weapon1.png','img/weapon2.png','img/weapon3.png'], // ảnh theo độ hiếm (Thường, Tốt, Hiếm, Sử thi), cùng thứ tự với names
+ imgs:['image/weapon0.png','image/weapon1.png','image/weapon2.png','image/weapon3.png'], // ảnh theo độ hiếm (Thường, Tốt, Hiếm, Sử thi), cùng thứ tự với names
  names:['Thiết Kiếm','Thanh Phong Kiếm','Huyền Thiết Kiếm','Thanh Long Kiếm'], // tên theo độ hiếm: Thường, Tốt, Hiếm, Sử thi
  roll:m=>({atk:Math.round(rnd(5,10)*m)}),   // chỉ số gốc: sát thương 5 đến 9, nhân hệ số độ hiếm m
  act:
  {
-	n:'Đánh hải tặc',d:'Truy nã hải tặc.',img:'img/haitac.png', // img = ảnh khung hoạt động (để '' nếu chưa có)
+	n:'Đánh hải tặc',d:'Truy nã hải tặc.',img:'image/haitac.png', // img = ảnh khung hoạt động (để '' nếu chưa có)
 	
 	req:30,     // lực chiến khuyến nghị (càng thấp hơn thì tỉ lệ thắng càng thấp)
 	sil:20,     // bạc thưởng khi thắng
 	drop:.3,    // tỉ lệ rơi vũ khí khi thắng (0.3 = 30%)
-	max:10		// số lượt mỗi ngày
+	max:10,		// số lượt mỗi đợt reset
+	reset:[0]		// giờ reset lượt (0 = 0h đêm). Hải tặc chỉ reset 0h
   },   
  gain:[15,15,15],// danh vọng vũ khí mỗi lượt, theo cấp 1 / 2 / 3
  chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}] // quà khi đầy cấp 1 / 2 / 3 (bạc, độ hiếm vũ khí)
@@ -133,12 +134,13 @@ const WEAPON={
    ===================================================================== */
 const CHARM={
  label:'Trang sức',
- imgs:['img/charm0.png','img/charm1.png','img/charm2.png','img/charm3.png'],
+ imgs:['image/charm0.png','image/charm1.png','image/charm2.png','image/charm3.png'],
  names:['Ngọc Bội Đá','Ngọc Bích','Hổ Phách Bội','Long Ngọc Bội'],
  roll:m=>({def:Math.round(rnd(3,6)*m),res:Math.round(rnd(3,6)*m)}), // giáp 3 đến 6, kháng 3 đến 6, nhân hệ số độ hiếm m
  act:
  {
-	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'img/tdlt.png',req:220,sil:200,drop:.45,max:3,
+	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'image/tdlt.png',req:220,sil:200,drop:.45,max:2,
+	reset:[0,12],  // giờ reset lượt: 0h đêm và 12h trưa, lượt cũ không cộng dồn
 	days:[2,4,6] // chỉ mở thứ 3 và thứ 5 (0=Chủ nhật, 1=Thứ 2, 2=Thứ 3, 3=Thứ 4, 4=Thứ 5, 5=Thứ 6, 6=Thứ 7)
  },   
  gain:[50,100,150],
@@ -151,11 +153,11 @@ const CHARM={
    ===================================================================== */
 const ARMOR={
  label:'Phòng cụ',
- imgs:['img/armor0.png','img/armor1.png','img/armor2.png','img/armor3.png'],
+ imgs:['image/armor0.png','image/armor1.png','image/armor2.png','image/armor3.png'],
  names:['Áo Vải Thô','Giáp Da Thú','Thiết Giáp','Kim Ti Giáp'],
  roll:m=>({hp:Math.round(rnd(40,70)*m)}),   // máu gốc 40 đến 70, nhân hệ số độ hiếm m
- act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',img:'img/tdc.png',
-  req:90,sil:1000,drop:.4,max:2},
+ act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',img:'image/tdc.png',
+  req:90,sil:1000,drop:.4,max:2,reset:[0,12]},
  gain:[15,20,35],
  chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}]
 };
@@ -179,17 +181,29 @@ function mk(slot,r){const it={id:S.n++,slot,r,lv:0,name:SLOTS[slot].names[r],atk
  return Object.assign(it,SLOTS[slot].roll(R[r].m))}
 function roll(){let x=Math.random()*100;for(let r=1;r<4;r++){if(x<ODDS[r])return r;x-=ODDS[r]}return 1}
 
-function fresh(){S={sil:50,rep:Object.fromEntries(SK.map(k=>[k,0])),lv:1,exp:0,seal:0,day:today(),ent:Z(),n:1,eq:{},bag:[],cl:[],log:[]};
+const newState=()=>({sil:50,rep:Object.fromEntries(SK.map(k=>[k,0])),lv:1,exp:0,seal:0,ent:Z(),n:1,eq:{},bag:[],cl:[],log:[]}); // trạng thái mặc định
+function fresh(){S=newState();
  S.eq.weapon=mk('weapon',0);S.eq.armor=mk('armor',0);S.eq.charm=null} // đồ khởi đầu: vũ khí và phòng cụ thường
-function load(){try{const t=localStorage.getItem(KEY);if(t){S=JSON.parse(t);return}}catch(e){}fresh()}
+// bổ sung các trường còn thiếu cho bản lưu cũ. Nhờ vậy thêm tính năng mới KHÔNG cần đổi KEY, tiến trình cũ giữ nguyên
+function migrate(){const b=newState();for(const k in b)if(S[k]===undefined)S[k]=b[k];
+ SK.forEach(k=>{if(S.rep[k]===undefined)S.rep[k]=0})}
+function load(){try{const t=localStorage.getItem(KEY);if(t){S=JSON.parse(t);migrate();return}}catch(e){}fresh()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
 // ---- ngày mới: làm mới lượt ----
-const today=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
+// mã đợt hiện tại của 1 hoạt động, tính theo mảng reset của nó. Mã đổi nghĩa là vừa qua mốc reset
+const period=(d,t=new Date())=>{const h=t.getHours();let s=-1;
+ (d.reset||[0]).forEach((x,k)=>{if(h>=x)s=k});
+ return t.getFullYear()+'-'+(t.getMonth()+1)+'-'+t.getDate()+'-'+s};
+// qua mốc reset thì lượt của hoạt động đó về 0 (không cộng dồn). Trả về true nếu có thay đổi
 function tick(){let ch=false;
- if(S.day!==today()){S.day=today();S.ent=Z();ch=true}               // sang ngày mới: đặt lượt về 0
- DG.forEach((d,i)=>{if(!(S.ent[i]>=0))S.ent[i]=0;                   // sửa bản lưu hỏng
-  if(S.ent[i]>d.max){S.ent[i]=d.max;ch=true}});                     // bản lưu cũ có số lượt đã dùng lớn hơn max (do bạn giảm max) thì kéo về max
+ if(!S.per){  // bản lưu cũ chưa có mốc đợt: coi lượt đang giữ thuộc về 0h của ngày S.day (ngày lưu cũ), nên qua 12h sẽ được làm mới đúng. Bản lưu mới đã có S.per nên deploy code không bị reset
+  const m=/^(\d+)-(\d+)-(\d+)$/.exec(S.day||''),t0=m?new Date(+m[1],+m[2]-1,+m[3],0,0):new Date();
+  S.per=DG.map(d=>period(d,t0))}
+ DG.forEach((d,i)=>{const c=period(d);
+  if(S.per[i]!==c){S.per[i]=c;S.ent[i]=0;ch=true}                   // qua mốc: đặt lượt về 0
+  if(!(S.ent[i]>=0))S.ent[i]=0;                                      // sửa bản lưu hỏng
+  if(S.ent[i]>d.max){S.ent[i]=d.max;ch=true}});                      // kéo về max nếu bạn vừa giảm max
  return ch}
 
 // ---- danh vọng: cấp theo từng nhánh, và điểm cộng mỗi lượt lấy từ mảng gain của khối tương ứng ----
@@ -225,7 +239,7 @@ const isOpen=d=>!d.days||d.days.includes(new Date().getDay());     // hôm nay h
 const openText=d=>d.days.map(x=>DAY_NAME[x]).join(', ');            // ví dụ "Thứ 3, Thứ 5"	
 function run(i){tick();const d=DG[i],k=d.slot,lbl=SL[k].toLowerCase();
  if(!isOpen(d)){say(`${d.n} chỉ mở vào: ${openText(d)}.`,1);return}				
- if(S.ent[i]>=d.max){say('Hôm nay bạn đã hết lượt: '+d.n+'.',1);return}
+ if(S.ent[i]>=d.max){say('Bạn đã hết lượt: '+d.n+'.',1);return}
  S.ent[i]++;
  S.seal=Math.min(SEAL_STEP*SEAL_MAX,S.seal+SEAL_ACT);       // ấn +điểm
  const p=Math.min(.97,Math.max(.1,power()/d.req*.8)),lv0=S.lv;
@@ -269,7 +283,7 @@ function render(){tick();
   SK.map(k=>`<div class="slot">${SL[k]}</div>`+(S.eq[k]?card(S.eq[k],1):'<div class="empty">Chưa trang bị</div>')).join('')+
   `<div class="slot">Ngựa</div><div class="empty">${h?img(h.img,'hico'):''}${h?h.n+', +'+h.p+'% chỉ số':'Chưa có, cần cấp '+HORSES[HORSES.length-1].lv}</div><div class="slot">Ấn</div><div class="empty">${img(sealImg(),'hico')}${st}/${SEAL_MAX} sao, +${st*SEAL_PCT}% chỉ số</div><div class="slot">Phi phong</div><div class="empty">${img(CLOAK_IMG,'hico')}Chưa mở, sẽ bổ sung sau</div>`;
  $('dg').innerHTML=DG.map((d,i)=>{const p=Math.round(Math.min(.97,Math.max(.1,power()/d.req*.8))*100);
-  return `<div class="dg">${img(d.img,'banner')}<b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt hôm nay.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
+  return `<div class="dg">${img(d.img,'banner')}<b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt đợt này.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
  $('bag').innerHTML=`<p class="empty">${S.bag.length}/${BAG} món</p>`+(S.bag.length?S.bag.map(i=>card(i,0)).join(''):'<div class="empty">Trống. Đi làm hoạt động để tìm trang bị.</div>');
  $('log').innerHTML=S.log.map(t=>`<li>${t}</li>`).join('')||'<li>Chưa có gì xảy ra.</li>';
  $('rs').textContent='Chơi lại từ đầu';armed=false;save()}
@@ -294,8 +308,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]')
  /* =====================================================================
    7. TỰ LUYỆN (tăng EXP theo thời gian)
    ===================================================================== */
-const TRAIN_SEC=60;              // cứ 60 giây...
-const TRAIN_EXP=12;              // ...được 12 EXP
+const TRAIN_SEC=100;              // cứ 5 giây...
+const TRAIN_EXP=20;              // ...được 1 EXP
 const TRAIN_OFFLINE_MAX_H=4;    // tối đa bù bao nhiêu giờ khi tắt trang (0 = không giới hạn)
 
 // tính số EXP đã tích lũy từ lần trước, cộng vào nhân vật. Trả về true nếu có thay đổi
