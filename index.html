@@ -50,6 +50,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .ico{float:left;width:48px;height:48px;object-fit:contain;margin-right:8px;border-radius:4px}
 .it::after{content:"";display:block;clear:both}
 .hico{width:48px;height:48px;object-fit:contain;vertical-align:middle;margin-right:8px;border-radius:4px}
+#pick{display:none}.picking #pick{display:block}.picking>section,.picking>.grid{display:none}
 .banner{width:100%;height:90px;object-fit:cover;border-radius:4px;margin-bottom:6px}
 @media (max-width:860px){.grid{grid-template-columns:1fr}.track{grid-template-columns:1fr}}
 </style>
@@ -57,6 +58,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 <body>
 <main>
 <header><h1>KT</h1><div id="top"></div></header>
+<div id="pick"></div>
 <section><h2>Danh vọng</h2><div class="track" id="track"></div></section>
 <section><h2>Thông tin nhân vật</h2><div class="info" id="info"></div></section>
 <div class="grid">
@@ -72,6 +74,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
    0. CẤU HÌNH CHUNG  (chỉnh các con số dùng chung cho cả game)
    ===================================================================== */
 const KEY='hanh_lo_v6';              // tên bản lưu. Đổi cấu trúc dữ liệu thì đổi số này để tránh lỗi bản cũ
+const IMG_DIR='img/';                 // thư mục ảnh trong repo (đổi đúng 1 chỗ này khi đổi tên thư mục)
+const IMG_ALT='image/';              // thư mục dự phòng: ảnh không có ở IMG_DIR thì thử tiếp ở đây
 const BAG=16;                        // sức chứa hành trang
 const CAP=[1500,3000,4500];          // danh vọng đầy cấp 1 / 2 / 3 (dùng chung cho 3 nhánh)
 const R=[                            // độ hiếm. m = hệ số nhân chỉ số gốc
@@ -88,21 +92,21 @@ const need=lv=>Math.round(EXP_L1*Math.pow(1+EXP_UP,lv-1)); // EXP cần ở cấ
 
 /* ---- NGỰA (tăng % chỉ số theo cấp nhân vật). Xếp từ cao xuống thấp ---- */
 const HORSES=[ // img = ảnh ngựa (để '' nếu chưa có)
- {lv:150,n:'Ngựa xịn',p:30,img:'img/horse3.png'},
- {lv:100,n:'Ngựa tốt',p:20,img:'img/horse2.png'},
- {lv:60,n:'Ngựa thường',p:10,img:'img/horse1.png'}];
+ {lv:150,n:'Ngựa xịn',p:30,img:'horse3.png'},
+ {lv:100,n:'Ngựa tốt',p:20,img:'horse2.png'},
+ {lv:60,n:'Ngựa thường',p:10,img:'horse1.png'}];
 
 /* ---- ẤN (mỗi hoạt động +điểm, đủ điểm thì lên sao, mỗi sao tăng % chỉ số) ---- */
 const SEAL_ACT=100;                   // điểm ấn mỗi hoạt động
 const SEAL_STEP=1000;                // điểm cho 1 sao
 const SEAL_MAX=10;                   // số sao tối đa
-const SEAL_IMGS={0:'img/seal0.png',5:'img/seal5.png',10:'img/seal10.png'}; // số sao : ảnh ấn. Muốn thêm mốc thì thêm dạng 5:'img/seal5.png'
+const SEAL_IMGS={0:'seal0.png',10:'seal10.png'}; // số sao : ảnh ấn. Muốn thêm mốc thì thêm dạng 5:'seal5.png'
 // chọn ảnh theo số sao hiện tại: lấy ảnh của mốc cao nhất mà số sao đã đạt (1 đến 9 sao dùng ảnh 0 sao)
 const sealImg=()=>{let src='';Object.keys(SEAL_IMGS).map(Number).sort((a,b)=>a-b).forEach(k=>{if(stars()>=k)src=SEAL_IMGS[k]});return src};
 const SEAL_PCT=5;                    // mỗi sao +5% chỉ số
 
 /* ---- PHI PHONG (chưa có, bổ sung sau). Trả về % chỉ số cộng thêm ---- */
-const CLOAK_IMG='img/cloak.png';     // ảnh phi phong (để '' nếu chưa có)
+const CLOAK_IMG='cloak.png';     // ảnh phi phong (để '' nếu chưa có)
 const cloak=()=>0;
 
 /* =====================================================================
@@ -111,12 +115,12 @@ const cloak=()=>0;
    ===================================================================== */
 const WEAPON={
  label:'Vũ khí',
- imgs:['img/weapon0.png','img/weapon1.png','img/weapon2.png','img/weapon3.png'], // ảnh theo độ hiếm (Thường, Tốt, Hiếm, Sử thi), cùng thứ tự với names
+ imgs:['weapon0.png','weapon1.png','weapon2.png','weapon3.png'], // ảnh theo độ hiếm (Thường, Tốt, Hiếm, Sử thi), cùng thứ tự với names
  names:['Thiết Kiếm','Thanh Phong Kiếm','Huyền Thiết Kiếm','Thanh Long Kiếm'], // tên theo độ hiếm: Thường, Tốt, Hiếm, Sử thi
  roll:m=>({atk:Math.round(rnd(5,10)*m)}),   // chỉ số gốc: sát thương 5 đến 9, nhân hệ số độ hiếm m
  act:
  {
-	n:'Đánh hải tặc',d:'Truy nã hải tặc.',img:'img/haitac.png', // img = ảnh khung hoạt động (để '' nếu chưa có)
+	n:'Đánh hải tặc',d:'Truy nã hải tặc.',img:'haitac.png', // img = ảnh khung hoạt động (để '' nếu chưa có)
 	
 	req:30,     // lực chiến khuyến nghị (càng thấp hơn thì tỉ lệ thắng càng thấp)
 	sil:20,     // bạc thưởng khi thắng
@@ -129,17 +133,41 @@ const WEAPON={
 };
 
 /* =====================================================================
+   1B. MÔN PHÁI  (chọn 1 lần trước khi chơi, mỗi phái có VŨ KHÍ đặc thù riêng)
+   Thêm phái: copy nguyên 1 khối (vd thieuLam:{...}) rồi đổi tên khóa và nội dung.
+   Các phái dưới đây chỉ là ví dụ, bạn đổi tên / mô tả / vũ khí / chỉ số theo ý.
+   ===================================================================== */
+const PHAI={
+ thieuLam:{n:'Thiếu Lâm',d:'Võ công cương mãnh, dùng côn.',
+  names:['Thiết Côn','Hổ Vĩ Côn','Kim Cang Côn','Long Hổ Côn'],            // tên vũ khí theo độ hiếm: Thường, Tốt, Hiếm, Sử thi
+  imgs:['thieulam0.png','thieulam1.png','thieulam2.png','thieulam3.png'],   // ảnh vũ khí (nằm trong thư mục ảnh, cùng thứ tự với names)
+  roll:m=>({atk:Math.round(rnd(5,9)*m)})},                                  // chỉ số gốc vũ khí của phái này (bỏ dòng roll thì dùng của khối WEAPON)
+ voDang:{n:'Võ Đang',d:'Kiếm pháp nhẹ nhàng, dùng kiếm.',
+  names:['Thanh Cương Kiếm','Tử Điện Kiếm','Thái Cực Kiếm','Chân Vũ Kiếm'],
+  imgs:['vodang0.png','vodang1.png','vodang2.png','vodang3.png'],
+  roll:m=>({atk:Math.round(rnd(4,10)*m)})},                                 // ví dụ: sát thương dao động rộng hơn
+ caiBang:{n:'Cái Bang',d:'Bổng pháp hiểm hóc, dùng bổng.',
+  names:['Trúc Bổng','Bổng Phá Thiên','Long Đầu Bổng','Đả Cẩu Bổng'],
+  imgs:['caibang0.png','caibang1.png','caibang2.png','caibang3.png'],
+  roll:m=>({atk:Math.round(rnd(6,8)*m)})}
+ minhGiao:{n:'Minh Giáo',d:'tôn giáo cổ gốc Ba Tư, sử dụng kiếm',
+  names:['Trường Kiếm','Linh Dương Kiếm','Huyền Ma Kiếm','Liệt Diệm Ma Kiếm'],
+  imgs:['minhgiao0.png','minhgiao1.png','minhgiao2.png','minhgiao3.png'],
+  roll:m=>({atk:Math.round(rnd(5,8)*m)})}  // ví dụ: sát thương ổn định hơn
+};
+
+/* =====================================================================
    2. TRANG SỨC  (cộng GIÁP và KHÁNG)  -  hoạt động: Phó bản TĐLT
    Muốn chỉnh trang sức: sửa trong khối CHARM ngay dưới đây
    ===================================================================== */
 const CHARM={
  label:'Trang sức',
- imgs:['img/charm0.png','img/charm1.png','img/charm2.png','img/charm3.png'],
+ imgs:['charm0.png','charm1.png','charm2.png','charm3.png'],
  names:['Ngọc Bội Đá','Ngọc Bích','Hổ Phách Bội','Long Ngọc Bội'],
  roll:m=>({def:Math.round(rnd(3,6)*m),res:Math.round(rnd(3,6)*m)}), // giáp 3 đến 6, kháng 3 đến 6, nhân hệ số độ hiếm m
  act:
  {
-	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'img/tdlt.png',req:220,sil:200,drop:.45,max:2,
+	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'tdlt.png',req:220,sil:200,drop:.45,max:2,
 	reset:[0,12],  // giờ reset lượt: 0h đêm và 12h trưa, lượt cũ không cộng dồn
 	days:[2,4,6] // chỉ mở thứ 3 và thứ 5 (0=Chủ nhật, 1=Thứ 2, 2=Thứ 3, 3=Thứ 4, 4=Thứ 5, 5=Thứ 6, 6=Thứ 7)
  },   
@@ -153,10 +181,10 @@ const CHARM={
    ===================================================================== */
 const ARMOR={
  label:'Phòng cụ',
- imgs:['img/armor0.png','img/armor1.png','img/armor2.png','img/armor3.png'],
+ imgs:['armor0.png','armor1.png','armor2.png','armor3.png'],
  names:['Áo Vải Thô','Giáp Da Thú','Thiết Giáp','Kim Ti Giáp'],
  roll:m=>({hp:Math.round(rnd(40,70)*m)}),   // máu gốc 40 đến 70, nhân hệ số độ hiếm m
- act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',img:'img/tdc.png',
+ act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',img:'tdc.png',
   req:90,sil:1000,drop:.4,max:2,reset:[0,12]},
  gain:[15,20,35],
  chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}]
@@ -177,13 +205,18 @@ const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 let S,armed=false;
 
 // tạo 1 món đồ: lấy tên và chỉ số gốc từ khối của loại đó (WEAPON / CHARM / ARMOR)
-function mk(slot,r){const it={id:S.n++,slot,r,lv:0,name:SLOTS[slot].names[r],atk:0,def:0,res:0,hp:0};
- return Object.assign(it,SLOTS[slot].roll(R[r].m))}
+// vũ khí lấy tên, ảnh, chỉ số theo PHÁI đã chọn. Phòng cụ và trang sức lấy từ khối của chúng
+const hasP=slot=>slot==='weapon'&&S.phai&&PHAI[S.phai];
+const namesOf=slot=>hasP(slot)?PHAI[S.phai].names:SLOTS[slot].names;
+const imgsOf=slot=>(hasP(slot)&&PHAI[S.phai].imgs)||SLOTS[slot].imgs||[];
+const rollOf=slot=>(hasP(slot)&&PHAI[S.phai].roll)||SLOTS[slot].roll;
+function mk(slot,r){const it={id:S.n++,slot,r,lv:0,name:namesOf(slot)[r],atk:0,def:0,res:0,hp:0};
+ return Object.assign(it,rollOf(slot)(R[r].m))}
 function roll(){let x=Math.random()*100;for(let r=1;r<4;r++){if(x<ODDS[r])return r;x-=ODDS[r]}return 1}
 
 const newState=()=>({sil:50,rep:Object.fromEntries(SK.map(k=>[k,0])),lv:1,exp:0,seal:0,ent:Z(),n:1,eq:{},bag:[],cl:[],log:[]}); // trạng thái mặc định
 function fresh(){S=newState();
- S.eq.weapon=mk('weapon',0);S.eq.armor=mk('armor',0);S.eq.charm=null} // đồ khởi đầu: vũ khí và phòng cụ thường
+ S.eq.weapon=null;S.eq.armor=mk('armor',0);S.eq.charm=null} // vũ khí khởi đầu được cấp khi chọn phái // đồ khởi đầu: vũ khí và phòng cụ thường
 // bổ sung các trường còn thiếu cho bản lưu cũ. Nhờ vậy thêm tính năng mới KHÔNG cần đổi KEY, tiến trình cũ giữ nguyên
 function migrate(){const b=newState();for(const k in b)if(S[k]===undefined)S[k]=b[k];
  SK.forEach(k=>{if(S.rep[k]===undefined)S.rep[k]=0})}
@@ -224,7 +257,7 @@ const pct=()=>{const h=horse();return (h?h.p:0)+stars()*SEAL_PCT+cloak()}; // t�
 const stat=k=>Math.round(Object.values(S.eq).reduce((a,i)=>a+(i?v(i[k]||0,i):0),0)*(1+pct()/100));
 const power=()=>Math.round(stat('atk')*2+stat('def')*2+stat('res')*2+stat('hp')/4); // lực chiến tổng
 // chèn ảnh: nếu chưa có file ảnh thì tự ẩn, không hiện icon hỏng
-const img=(src,cls)=>src?`<img class="${cls}" src="${src}" alt="" onerror="this.style.display='none'">`:'';
+const img=(f,cls)=>f?`<img class="${cls}" src="${IMG_DIR}${f}" alt="" onerror="if(!this.dataset.r){this.dataset.r=1;this.src='${IMG_ALT}${f}'}else{this.style.display='none'}">`:'';
 const cell=(t,b,s)=>`<div class="cell"><small>${t}</small><b>${b}</b><div class="st">${s}</div></div>`;
 
 // ---- cường hóa / bán ----
@@ -257,7 +290,7 @@ function run(i){tick();const d=DG[i],k=d.slot,lbl=SL[k].toLowerCase();
    5. HIỂN THỊ
    ===================================================================== */
 function stats(i){return [i.atk?'Sát thương '+v(i.atk,i):'',i.hp?'Máu '+v(i.hp,i):'',i.def?'Giáp '+v(i.def,i):'',i.res?'Kháng '+v(i.res,i):''].filter(Boolean).join(', ')+' (lực chiến '+pw(i)+')'}
-function card(i,eq){return `<div class="it r${i.r}">${img(SLOTS[i.slot].imgs[i.r],'ico')}<b>${i.name}${i.lv?' +'+i.lv:''}</b><i class="pill">${R[i.r].n}</i><span class="st">${eq?'':SL[i.slot]+': '}${stats(i)}</span><div class="bt">${eq?'':`<button data-a="eq" data-id="${i.id}">Mặc</button>`}<button data-a="up" data-id="${i.id}" ${i.lv>=10||S.sil<cost(i)?'disabled':''}>${i.lv>=10?'Tối đa':'Cường hóa '+cost(i)+' bạc'}</button>${eq?'':`<button data-a="sell" data-id="${i.id}">Bán +${price(i)}</button>`}</div></div>`}
+function card(i,eq){return `<div class="it r${i.r}">${img(imgsOf(i.slot)[i.r],'ico')}<b>${i.name}${i.lv?' +'+i.lv:''}</b><i class="pill">${R[i.r].n}</i><span class="st">${eq?'':SL[i.slot]+': '}${stats(i)}</span><div class="bt">${eq?'':`<button data-a="eq" data-id="${i.id}">Mặc</button>`}<button data-a="up" data-id="${i.id}" ${i.lv>=10||S.sil<cost(i)?'disabled':''}>${i.lv>=10?'Tối đa':'Cường hóa '+cost(i)+' bạc'}</button>${eq?'':`<button data-a="sell" data-id="${i.id}">Bán +${price(i)}</button>`}</div></div>`}
 
 // ô danh vọng của 1 nhánh: CHỈ hiện cấp hiện tại (mốc chưa nhận quà đầu tiên). Nhận quà xong mới sang cấp kế
 function trackCell(k){const lbl=SL[k].toLowerCase(),ch=SLOTS[k].chests;let x=0;
@@ -266,8 +299,13 @@ function trackCell(k){const lbl=SL[k].toLowerCase(),ch=SLOTS[k].chests;let x=0;
  const lo=x?CAP[x-1]:0,tg=CAP[x],m=ch[x],pc=Math.max(0,Math.min(1,(S.rep[k]-lo)/(tg-lo)))*100,can=S.rep[k]>=tg;
  return `<div class="ms"><div class="mh"><b>${SL[k]} cấp ${x+1}</b><small>${S.rep[k]}/${tg}. Quà: ${m.sil} bạc và ${lbl} ${R[m.r].n}</small></div><div class="bar"><i style="width:${pc}%"></i></div><button data-a="chest" data-k="${k}" data-x="${x}" ${can?'':'disabled'}>${can?'Mở quà':'Chưa đủ danh vọng'}</button></div>`}
 
+// màn chọn phái (hiện khi chưa chọn phái)
+function renderPick(){$('pick').innerHTML='<section><h2>Chọn môn phái</h2><p class="empty">Mỗi phái có vũ khí đặc thù riêng. Chọn trước khi chơi, muốn đổi phải chơi lại từ đầu.</p><div class="track">'+
+ Object.keys(PHAI).map(k=>{const p=PHAI[k];return `<div class="dg">${img(p.imgs&&p.imgs[0],'hico')}<b>${p.n}</b><p>${p.d} Vũ khí: ${p.names.join(', ')}.</p><button data-a="phai" data-k="${k}">Chọn phái này</button></div>`}).join('')+'</div></section>'}
 function render(){tick();
- $('top').innerHTML=`<span>Bạc <b>${S.sil}</b></span>`;
+ const picked=S.phai&&PHAI[S.phai];document.querySelector('main').classList.toggle('picking',!picked);
+ if(!picked){renderPick();return}
+ $('top').innerHTML=`<span>Phái <b>${PHAI[S.phai].n}</b></span><span style="margin-left:16px">Bạc <b>${S.sil}</b></span>`;
  $('track').innerHTML=SK.map(trackCell).join('');
  const h=horse(),st=stars(),nh=HORSES.slice().reverse().find(x=>x.lv>S.lv);
  const expPc=S.lv>=LV_MAX?100:S.exp/need(S.lv)*100;
@@ -293,7 +331,8 @@ function render(){tick();
    ===================================================================== */
 document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(!b||b.disabled)return;const a=b.dataset.a,id=b.dataset.id;
  if(a==='reset'){if(!armed){armed=true;b.textContent='Bấm lại để xóa toàn bộ tiến trình';return}fresh();render();say('Bắt đầu hành trình mới.');return}
- if(a==='newday'){S.ent=Z();say('Sang ngày mới: lượt hoạt động đã làm mới.')}
+ if(a==='phai'){if(PHAI[b.dataset.k]){S.phai=b.dataset.k;if(!S.eq.weapon)S.eq.weapon=mk('weapon',0);say('Bạn đã chọn phái '+PHAI[S.phai].n+'.')}}
+ else if(a==='newday'){S.ent=Z();say('Sang ngày mới: lượt hoạt động đã làm mới.')}
  else if(a==='exp'){const l0=S.lv;addExp(10000);say('Thử nghiệm: +10000 EXP.'+(S.lv>l0?` Lên cấp ${S.lv}.`:''))}
  else if(a==='rep'){SK.forEach(k=>S.rep[k]=Math.min(CAP[2],S.rep[k]+500));say('Thử nghiệm: +500 danh vọng cho mọi nhánh.')}
  else if(a==='run')run(+b.dataset.i);
