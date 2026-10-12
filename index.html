@@ -82,6 +82,21 @@ const R=[                            // độ hiếm. m = hệ số nhân chỉ 
  {n:'Thường',m:1},{n:'Tốt',m:1.8},{n:'Hiếm',m:3},{n:'Sử thi',m:5}];
 const ODDS=[0,76,20,4];              // % rơi độ hiếm DV1 / DV2 / DV3 (tổng 100). DV0 chỉ là đồ khởi đầu
 
+/* ---- CƯỜNG HÓA (tốn bạc, từ +6 trở lên có thể thất bại nhưng KHÔNG tụt cấp) ---- */
+const UP_MAX=16;                     // cấp cường hóa tối đa
+const UP_COST1=100;                  // bạc cường hóa ở cấp 1 (từ +0 lên +1)
+const UP_COST_UP=0.6;                // mỗi cấp sau tăng 50% so với cấp trước (100, 150, 225, 338...)
+const UP_SAFE=6;                     // cấp đích từ số này trở lên mới có thể thất bại
+const UP_RATE={12:5}; // tỉ lệ thành công gốc (%) theo cấp đích. Sửa theo ý
+const UP_LUCK=3.5;                    // mỗi lần thất bại +10% may mắn (cộng dồn). Thành công thì về 0%
+
+/* ---- ĐIỂM DANH (mỗi ngày 1 lần, nút ở góc phải trên cùng). Quà ngẫu nhiên 1 trong 3 loại ---- */
+const CI_SEAL=[10,50];               // quà điểm ấn: ngẫu nhiên 10 đến 50
+const CI_SEAL_MAX=5;                 // quà ấn tối đa 5 lần mỗi tháng (hết lần thì chỉ rơi 2 loại còn lại)
+const CI_STAT=[1,5];                 // quà chỉ số: +1 đến +5 vào 1 chỉ số ngẫu nhiên (cộng vĩnh viễn)
+const CI_SIL_MAX=199;                // quà bạc: ngẫu nhiên dưới 200
+const STAT_NAME={atk:'Sát thương',hp:'Máu',def:'Giáp',res:'Kháng'};
+
 /* ---- EXP nhân vật ---- */
 const EXP_PER_ACT=100;               // mỗi lần làm hoạt động +100 EXP
 const EXP_L1=1000;                   // EXP cần để lên cấp 2
@@ -107,7 +122,19 @@ const SEAL_PCT=5;                    // mỗi sao +5% chỉ số
 
 /* ---- PHI PHONG (chưa có, bổ sung sau). Trả về % chỉ số cộng thêm ---- */
 const CLOAK_IMG='cloak.png';     // ảnh phi phong (để '' nếu chưa có)
-const cloak=()=>0;
+const CLOAK_STEP=1000;   // mỗi 1000 lực chiến lên 1 bậc
+const CLOAKS=[
+ {n:'Siêu Phàm',p:2,img:'cloak1.png'}, //  n = tên hiển thị   p = % chỉ số cộng thêm   img = tên file ảnh
+ {n:'Xuất Trần',p:4,img:'cloak2.png'},
+ {n:'Lăng Tuyệt',p:6,img:'cloak3.png'},
+ {n:'Kinh Thế',p:8,img:'cloak4.png'},
+ {n:'Ngự Không',p:10,img:'cloak5.png'}
+ {n:'Hỗn Thiên',p:12,img:'cloak6.png'},
+ {n:'Sồ Phượng',p:14,img:'cloak7.png'},
+ {n:'Tiềm Long',p:16,img:'cloak8.png'},
+ {n:'Chí Tôn',p:18,img:'cloak9.png'},
+ {n:'Vô Song',p:20,img:'cloak10.png'},
+ ];
 
 /* =====================================================================
    1. VŨ KHÍ  (cộng SÁT THƯƠNG)  -  hoạt động: Đánh hải tặc
@@ -128,7 +155,7 @@ const WEAPON={
 	max:10,		// số lượt mỗi đợt reset
 	reset:[0]		// giờ reset lượt (0 = 0h đêm). Hải tặc chỉ reset 0h
   },   
- gain:[15,15,15],// danh vọng vũ khí mỗi lượt, theo cấp 1 / 2 / 3
+ gain:[15,30,45],// danh vọng vũ khí mỗi lượt, theo cấp 1 / 2 / 3
  chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}] // quà khi đầy cấp 1 / 2 / 3 (bạc, độ hiếm vũ khí)
 };
 
@@ -214,7 +241,7 @@ function mk(slot,r){const it={id:S.n++,slot,r,lv:0,name:namesOf(slot)[r],atk:0,d
  return Object.assign(it,rollOf(slot)(R[r].m))}
 function roll(){let x=Math.random()*100;for(let r=1;r<4;r++){if(x<ODDS[r])return r;x-=ODDS[r]}return 1}
 
-const newState=()=>({sil:50,rep:Object.fromEntries(SK.map(k=>[k,0])),lv:1,exp:0,seal:0,ent:Z(),n:1,eq:{},bag:[],cl:[],log:[]}); // trạng thái mặc định
+const newState=()=>({sil:50,rep:Object.fromEntries(SK.map(k=>[k,0])),lv:1,exp:0,seal:0,ent:Z(),n:1,eq:{},bag:[],cl:[],log:[],luck:0,bonus:{atk:0,hp:0,def:0,res:0},ci:{last:'',streak:0,mon:'',seal:0}}); // trạng thái mặc định
 function fresh(){S=newState();
  S.eq.weapon=null;S.eq.armor=mk('armor',0);S.eq.charm=null} // vũ khí khởi đầu được cấp khi chọn phái // đồ khởi đầu: vũ khí và phòng cụ thường
 // bổ sung các trường còn thiếu cho bản lưu cũ. Nhờ vậy thêm tính năng mới KHÔNG cần đổi KEY, tiến trình cũ giữ nguyên
@@ -254,14 +281,15 @@ const pw=i=>Math.round((i.atk*2+i.def*2+(i.res||0)*2+i.hp/4)*f(i)); // lực chi
 const horse=()=>HORSES.find(h=>S.lv>=h.lv)||null;
 const stars=()=>Math.floor(S.seal/SEAL_STEP);
 const pct=()=>{const h=horse();return (h?h.p:0)+stars()*SEAL_PCT+cloak()}; // tổng % cộng từ ngựa + ấn + phi phong
-const stat=k=>Math.round(Object.values(S.eq).reduce((a,i)=>a+(i?v(i[k]||0,i):0),0)*(1+pct()/100));
+const stat=k=>Math.round((Object.values(S.eq).reduce((a,i)=>a+(i?v(i[k]||0,i):0),0)+(S.bonus&&S.bonus[k]||0))*(1+pct()/100)); // (đồ + chỉ số điểm danh) x (1 + % ngựa/ấn/phi phong)
 const power=()=>Math.round(stat('atk')*2+stat('def')*2+stat('res')*2+stat('hp')/4); // lực chiến tổng
 // chèn ảnh: nếu chưa có file ảnh thì tự ẩn, không hiện icon hỏng
 const img=(f,cls)=>f?`<img class="${cls}" src="${IMG_DIR}${f}" alt="" onerror="if(!this.dataset.r){this.dataset.r=1;this.src='${IMG_ALT}${f}'}else{this.style.display='none'}">`:'';
 const cell=(t,b,s)=>`<div class="cell"><small>${t}</small><b>${b}</b><div class="st">${s}</div></div>`;
 
 // ---- cường hóa / bán ----
-const cost=i=>20*(i.lv+1)*(i.r+1),price=i=>15*(i.r+1)**2+i.lv*10;
+const cost=i=>Math.round(UP_COST1*Math.pow(1+UP_COST_UP,i.lv)),price=i=>15*(i.r+1)**2+i.lv*10;
+const upRate=tg=>Math.min(100,(UP_RATE[tg]||50)+S.luck); // tỉ lệ thành công = gốc + may mắn
 const find=id=>{for(const k in S.eq)if(S.eq[k]&&S.eq[k].id==id)return S.eq[k];return S.bag.find(i=>i.id==id)};
 
 function say(t,bad){S.log.unshift(t);S.log=S.log.slice(0,8);$('msg').textContent=t;$('msg').style.color=bad?'var(--bad)':'var(--ink)'}
@@ -286,11 +314,26 @@ function run(i){tick();const d=DG[i],k=d.slot,lbl=SL[k].toLowerCase();
  if(S.lv>lv0)t+=` Lên cấp ${S.lv}!`;
  say(t,!win)}
 
+/* ---- ĐIỂM DANH ---- */
+const dayKey=(t=new Date())=>t.getFullYear()+'-'+(t.getMonth()+1)+'-'+t.getDate();
+const monKey=()=>{const t=new Date();return t.getFullYear()+'-'+(t.getMonth()+1)};
+const streakNow=()=>{const y=new Date();y.setDate(y.getDate()-1);return(S.ci.last===dayKey()||S.ci.last===dayKey(y))?S.ci.streak:0};
+function checkin(){const c=S.ci,dk=dayKey();
+ if(c.last===dk){say('Hôm nay bạn đã điểm danh rồi.',1);return}
+ c.streak=streakNow()+1;c.last=dk;                               // hôm qua có điểm danh thì chuỗi +1, bỏ lỡ 1 ngày thì tính lại từ 1
+ if(c.mon!==monKey()){c.mon=monKey();c.seal=0}                   // sang tháng mới: làm mới số lần nhận quà ấn
+ const pool=['sil','stat'];if(c.seal<CI_SEAL_MAX)pool.push('seal');
+ const g=pool[rnd(0,pool.length-1)];let t;
+ if(g==='seal'){const n=rnd(CI_SEAL[0],CI_SEAL[1]);S.seal=Math.min(SEAL_STEP*SEAL_MAX,S.seal+n);c.seal++;t=`+${n} điểm ấn (còn ${CI_SEAL_MAX-c.seal} lần quà ấn trong tháng)`}
+ else if(g==='stat'){const k=Object.keys(STAT_NAME)[rnd(0,3)],n=rnd(CI_STAT[0],CI_STAT[1]);S.bonus[k]=(S.bonus[k]||0)+n;t=`+${n} ${STAT_NAME[k]} vĩnh viễn`}
+ else{const n=rnd(1,CI_SIL_MAX);S.sil+=n;t=`+${n} bạc`}
+ say(`Điểm danh ngày thứ ${c.streak} liên tiếp: ${t}.`)}
+
 /* =====================================================================
    5. HIỂN THỊ
    ===================================================================== */
 function stats(i){return [i.atk?'Sát thương '+v(i.atk,i):'',i.hp?'Máu '+v(i.hp,i):'',i.def?'Giáp '+v(i.def,i):'',i.res?'Kháng '+v(i.res,i):''].filter(Boolean).join(', ')+' (lực chiến '+pw(i)+')'}
-function card(i,eq){return `<div class="it r${i.r}">${img(imgsOf(i.slot)[i.r],'ico')}<b>${i.name}${i.lv?' +'+i.lv:''}</b><i class="pill">${R[i.r].n}</i><span class="st">${eq?'':SL[i.slot]+': '}${stats(i)}</span><div class="bt">${eq?'':`<button data-a="eq" data-id="${i.id}">Mặc</button>`}<button data-a="up" data-id="${i.id}" ${i.lv>=10||S.sil<cost(i)?'disabled':''}>${i.lv>=10?'Tối đa':'Cường hóa '+cost(i)+' bạc'}</button>${eq?'':`<button data-a="sell" data-id="${i.id}">Bán +${price(i)}</button>`}</div></div>`}
+function card(i,eq){return `<div class="it r${i.r}">${img(imgsOf(i.slot)[i.r],'ico')}<b>${i.name}${i.lv?' +'+i.lv:''}</b><i class="pill">${R[i.r].n}</i><span class="st">${eq?'':SL[i.slot]+': '}${stats(i)}</span><div class="bt">${eq?'':`<button data-a="eq" data-id="${i.id}">Mặc</button>`}<button data-a="up" data-id="${i.id}" ${i.lv>=UP_MAX||S.sil<cost(i)?'disabled':''}>${i.lv>=UP_MAX?'Tối đa':'Cường hóa '+cost(i)+' bạc'+(i.lv+1>=UP_SAFE?' ('+upRate(i.lv+1)+'%)':'')}</button>${eq?'':`<button data-a="sell" data-id="${i.id}">Bán +${price(i)}</button>`}</div></div>`}
 
 // ô danh vọng của 1 nhánh: CHỈ hiện cấp hiện tại (mốc chưa nhận quà đầu tiên). Nhận quà xong mới sang cấp kế
 function trackCell(k){const lbl=SL[k].toLowerCase(),ch=SLOTS[k].chests;let x=0;
@@ -305,7 +348,8 @@ function renderPick(){$('pick').innerHTML='<section><h2>Chọn môn phái</h2><p
 function render(){tick();
  const picked=S.phai&&PHAI[S.phai];document.querySelector('main').classList.toggle('picking',!picked);
  if(!picked){renderPick();return}
- $('top').innerHTML=`<span>Phái <b>${PHAI[S.phai].n}</b></span><span style="margin-left:16px">Bạc <b>${S.sil}</b></span>`;
+ const cd=S.ci.last===dayKey();
+ $('top').innerHTML=`<span>Phái <b>${PHAI[S.phai].n}</b></span><span style="margin-left:16px">Bạc <b>${S.sil}</b></span> <button style="margin-left:16px" data-a="checkin" ${cd?'disabled':''}>${cd?'Đã điểm danh, chuỗi '+S.ci.streak+' ngày':'Điểm danh'}</button>`;
  $('track').innerHTML=SK.map(trackCell).join('');
  const h=horse(),st=stars(),nh=HORSES.slice().reverse().find(x=>x.lv>S.lv);
  const expPc=S.lv>=LV_MAX?100:S.exp/need(S.lv)*100;
@@ -315,6 +359,8 @@ function render(){tick();
   cell('Chỉ số','Sát thương '+stat('atk'),`Máu ${stat('hp')}, Giáp ${stat('def')}, Kháng ${stat('res')}`)+
   cell('Ngựa',(h?img(h.img,'hico'):'')+(h?h.n:'Chưa có'),(h?`+${h.p}% chỉ số. `:'')+(nh?`Còn ${nh.lv-S.lv} cấp tới ${nh.n} (cấp ${nh.lv}).`:'Đã ở bậc cao nhất.'))+
   cell('Ấn',img(sealImg(),'hico')+`${st}/${SEAL_MAX} sao`,st>=SEAL_MAX?'Đã tối đa':`${S.seal%SEAL_STEP}/${SEAL_STEP} điểm tới sao kế. Mỗi sao +${SEAL_PCT}% chỉ số. Mỗi hoạt động +${SEAL_ACT} điểm`)+
+  cell('Điểm danh','Chuỗi '+streakNow()+' ngày',`Chỉ số cộng thêm: ${Object.keys(STAT_NAME).map(k=>STAT_NAME[k]+' +'+(S.bonus[k]||0)).join(', ')}. Quà ấn tháng này: ${S.ci.mon===monKey()?S.ci.seal:0}/${CI_SEAL_MAX}`)+
+  cell('May mắn cường hóa','+'+S.luck+'%',`Mỗi lần thất bại +${UP_LUCK}%, cường hóa thành công thì về 0%`)+
   cell('Lượt hôm nay','',DG.map((d,i)=>`${d.n}: còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt`).join('<br>'))+
   cell('Phi phong',img(CLOAK_IMG,'hico')+'Sắp có','Tăng % chỉ số, dựa theo lực chiến, sẽ bổ sung sau');
  $('char').innerHTML=`<p>Lực chiến <b style="color:var(--gold);font-size:20px">${power()}</b></p>`+
@@ -337,7 +383,12 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]')
  else if(a==='rep'){SK.forEach(k=>S.rep[k]=Math.min(CAP[2],S.rep[k]+500));say('Thử nghiệm: +500 danh vọng cho mọi nhánh.')}
  else if(a==='run')run(+b.dataset.i);
  else if(a==='eq'){const k=S.bag.findIndex(i=>i.id==id);if(k<0)return;const it=S.bag.splice(k,1)[0],old=S.eq[it.slot];if(old)S.bag.push(old);S.eq[it.slot]=it}
- else if(a==='up'){const it=find(id);if(it&&it.lv<10&&S.sil>=cost(it)){S.sil-=cost(it);it.lv++}}
+ else if(a==='up'){const it=find(id);if(it&&it.lv<UP_MAX&&S.sil>=cost(it)){S.sil-=cost(it);const tg=it.lv+1;
+  if(tg<UP_SAFE){it.lv=tg;say(`Cường hóa ${it.name} lên +${tg}.`)}        // cấp thấp: luôn thành công
+  else{const rate=upRate(tg);
+   if(Math.random()*100<rate){it.lv=tg;S.luck=0;say(`Cường hóa thành công ${it.name} lên +${tg}! May mắn về 0%.`)}
+   else{S.luck+=UP_LUCK;say(`Cường hóa thất bại (tỉ lệ ${rate}%), mất bạc nhưng không tụt cấp. May mắn +${UP_LUCK}%, hiện ${S.luck}%.`,1)}}}}
+ else if(a==='checkin')checkin();
  else if(a==='sell'){const k=S.bag.findIndex(i=>i.id==id);if(k>=0){S.sil+=price(S.bag[k]);S.bag.splice(k,1)}}
  else if(a==='chest'){const k=b.dataset.k,x=+b.dataset.x,m=SLOTS[k].chests[x],cid=k+CAP[x];
   if(m&&S.rep[k]>=CAP[x]&&!S.cl.includes(cid)){S.cl.push(cid);S.sil+=m.sil;const it=mk(k,m.r);S.bag.push(it);
@@ -347,8 +398,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]')
  /* =====================================================================
    7. TỰ LUYỆN (tăng EXP theo thời gian)
    ===================================================================== */
-const TRAIN_SEC=100;              // cứ 5 giây...
-const TRAIN_EXP=50;              // ...được 1 EXP
+const TRAIN_SEC=10;              // cứ 5 giây...
+const TRAIN_EXP=2;              // ...được 1 EXP
 const TRAIN_OFFLINE_MAX_H=4;    // tối đa bù bao nhiêu giờ khi tắt trang (0 = không giới hạn)
 
 // tính số EXP đã tích lũy từ lần trước, cộng vào nhân vật. Trả về true nếu có thay đổi
