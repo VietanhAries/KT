@@ -108,11 +108,17 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 const KEY='hanh_lo_v6';              // tên bản lưu. Đổi cấu trúc dữ liệu thì đổi số này để tránh lỗi bản cũ
 const IMG_DIR='img/';                 // thư mục ảnh trong repo (đổi đúng 1 chỗ này khi đổi tên thư mục)
 const IMG_ALT='image/';              // thư mục dự phòng: ảnh không có ở IMG_DIR thì thử tiếp ở đây
+const NAME_MIN=2, NAME_MAX=16;         // độ dài tên nhân vật (số ký tự)
 const BAG=16;                        // sức chứa hành trang
 const CAP=[1500,3000,4500];          // danh vọng đầy cấp 1 / 2 / 3 (dùng chung cho 3 nhánh)
 const R=[                            // độ hiếm. m = hệ số nhân chỉ số gốc
  {n:'Thường',m:1},{n:'Tốt',m:1.8},{n:'Hiếm',m:3},{n:'Sử thi',m:5}];
 const ODDS=[0,76,20,4];              // % rơi độ hiếm DV1 / DV2 / DV3 (tổng 100). DV0 chỉ là đồ khởi đầu
+
+/* ---- LỰC CHIẾN ---- */
+const LC_MUL=2;                      // sát thương, giáp, kháng: chỉ số x 2 = lực chiến
+const LC_HP=4;                       // 4 máu = 1 lực chiến (máu không nhân 2)
+const REQ_LC=0.9, REQ_LV=1.1;        // lực chiến ĐỀ NGHỊ của hoạt động = lực chiến hiện tại x 0.9 + cấp nhân vật x 1.1
 
 /* ---- CƯỜNG HÓA (tốn bạc, từ +6 trở lên có thể thất bại nhưng KHÔNG tụt cấp) ---- */
 const UP_MAX=16;                     // cấp cường hóa tối đa
@@ -120,6 +126,7 @@ const UP_COST1=100;                  // bạc cường hóa ở cấp 1 (từ +0
 const UP_COST_UP=0.6;                // mỗi cấp sau tăng 50% so với cấp trước (100, 150, 225, 338...)
 const UP_SAFE=6;                     // cấp đích từ số này trở lên mới có thể thất bại
 const UP_RATE={12:5}; // tỉ lệ thành công gốc (%) theo cấp đích. Sửa theo ý
+const UP_GROW=[65,80];                // mỗi lần cường hóa THÀNH CÔNG, mỗi chỉ số của món đồ tăng ngẫu nhiên 65 đến 80% so với cấp trước
 const UP_LUCK=3.5;                    // mỗi lần thất bại +10% may mắn (cộng dồn). Thành công thì về 0%
 
 /* ---- ĐIỂM DANH (mỗi ngày 1 lần, nút ở góc phải trên cùng). Quà ngẫu nhiên 1 trong 3 loại ---- */
@@ -182,7 +189,7 @@ const WEAPON={
  {
 	n:'Đánh hải tặc',d:'Truy nã hải tặc.',img:'haitac.png', // img = ảnh khung hoạt động (để '' nếu chưa có)
 	
-	req:30,     // lực chiến khuyến nghị (càng thấp hơn thì tỉ lệ thắng càng thấp)
+	// req: không điền thì lực chiến đề nghị tự tính theo REQ_LC và REQ_LV. Muốn cố định cho riêng hoạt động này thì thêm req:số
 	sil:20,     // bạc thưởng khi thắng
 	drop:.3,    // tỉ lệ rơi vũ khí khi thắng (0.3 = 30%)
 	max:10,		// số lượt mỗi đợt reset
@@ -227,7 +234,7 @@ const CHARM={
  roll:m=>({def:Math.round(rnd(3,6)*m),res:Math.round(rnd(3,6)*m)}), // giáp 3 đến 6, kháng 3 đến 6, nhân hệ số độ hiếm m
  act:
  {
-	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'tdlt.png',req:220,sil:200,drop:.45,max:2,
+	n:'Phó bản TĐLT',d:'Phó bản rơi trang sức.',img:'tdlt.png',sil:200,drop:.45,max:2,
 	reset:[0,12],  // giờ reset lượt: 0h đêm và 12h trưa, lượt cũ không cộng dồn
 	days:[2,4,6] // chỉ mở thứ 3 và thứ 5 (0=Chủ nhật, 1=Thứ 2, 2=Thứ 3, 3=Thứ 4, 4=Thứ 5, 5=Thứ 6, 6=Thứ 7)
  },   
@@ -245,7 +252,7 @@ const ARMOR={
  names:['Áo Vải Thô','Giáp Da Thú','Thiết Giáp','Kim Ti Giáp'],
  roll:m=>({hp:Math.round(rnd(40,70)*m)}),   // máu gốc 40 đến 70, nhân hệ số độ hiếm m
  act:{n:'Phó bản TDC',d:'Phó bản rơi phòng cụ.',img:'tdc.png',
-  req:90,sil:1000,drop:.4,max:2,reset:[0,12]},
+  sil:1000,drop:.4,max:2,reset:[0,12]},
  gain:[15,20,35],
  chests:[{sil:500,r:1},{sil:1000,r:2},{sil:2000,r:3}]
 };
@@ -261,6 +268,7 @@ const Z=()=>DG.map(()=>0);                                 // bộ đếm lượ
    4. LOGIC GAME  (thường không cần sửa)
    ===================================================================== */
 const $=id=>document.getElementById(id);
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); // chống chèn mã HTML khi hiện tên
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 let S,armed=false;
 
@@ -270,7 +278,7 @@ const hasP=slot=>slot==='weapon'&&S.phai&&PHAI[S.phai];
 const namesOf=slot=>hasP(slot)?PHAI[S.phai].names:SLOTS[slot].names;
 const imgsOf=slot=>(hasP(slot)&&PHAI[S.phai].imgs)||SLOTS[slot].imgs||[];
 const rollOf=slot=>(hasP(slot)&&PHAI[S.phai].roll)||SLOTS[slot].roll;
-function mk(slot,r){const it={id:S.n++,slot,r,lv:0,name:namesOf(slot)[r],atk:0,def:0,res:0,hp:0};
+function mk(slot,r){const it={id:S.n++,slot,r,lv:0,name:namesOf(slot)[r],m2:1,atk:0,def:0,res:0,hp:0};
  return Object.assign(it,rollOf(slot)(R[r].m))}
 function roll(){let x=Math.random()*100;for(let r=1;r<4;r++){if(x<ODDS[r])return r;x-=ODDS[r]}return 1}
 
@@ -279,6 +287,7 @@ function fresh(){S=newState();
  S.eq.weapon=null;S.eq.armor=mk('armor',0);S.eq.charm=null} // vũ khí khởi đầu được cấp khi chọn phái // đồ khởi đầu: vũ khí và phòng cụ thường
 // bổ sung các trường còn thiếu cho bản lưu cũ. Nhờ vậy thêm tính năng mới KHÔNG cần đổi KEY, tiến trình cũ giữ nguyên
 function migrate(){const b=newState();for(const k in b)if(S[k]===undefined)S[k]=b[k];
+ [...Object.values(S.eq||{}),...(S.bag||[])].forEach(it=>{if(it&&!it.m2){if(it.lv>0)['atk','def','res','hp'].forEach(k=>{it[k]=Math.round((it[k]||0)*(1+.1*it.lv))});it.m2=1}}); // bản lưu cũ: nhân sẵn mức +10%/cấp vào chỉ số rồi đánh dấu, không mất tiến trình
  SK.forEach(k=>{if(S.rep[k]===undefined)S.rep[k]=0})}
 function load(){try{const t=localStorage.getItem(KEY);if(t){S=JSON.parse(t);migrate();return}}catch(e){}fresh()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -309,8 +318,8 @@ function addExp(n){if(S.lv>=LV_MAX)return;S.exp+=n;
  if(S.lv>=LV_MAX)S.exp=0}
 
 // ---- chỉ số và lực chiến ----
-const f=i=>1+.1*i.lv,v=(x,i)=>Math.round(x*f(i));            // mỗi cấp cường hóa +10%
-const pw=i=>Math.round((i.atk*2+i.def*2+(i.res||0)*2+i.hp/4)*f(i)); // lực chiến của 1 món
+const f=i=>1,v=(x,i)=>x;                                    // chỉ số đã lưu thẳng vào món đồ mỗi lần cường hóa (hàm grow), nên không nhân thêm
+const pw=i=>Math.round(((i.atk||0)+(i.def||0)+(i.res||0))*LC_MUL+(i.hp||0)/LC_HP); // lực chiến của 1 món = (sát thương + giáp + kháng) x 2 + máu / 4
 const horse=()=>HORSES.find(h=>S.lv>=h.lv)||null;
 const stars=()=>Math.floor(S.seal/SEAL_STEP);
 const pctBase=()=>{const h=horse();return (h?h.p:0)+stars()*SEAL_PCT}; // % chỉ số từ ngựa + ấn (chưa có phi phong)
@@ -320,9 +329,10 @@ const flatPower=()=>horsePw()+sealPw();               // tổng lực chiến c�
 const pct=()=>pctBase()+cloak();                                       // tổng % chỉ số: ngựa + ấn + phi phong
 const statX=(k,c)=>Math.round((Object.values(S.eq).reduce((a,i)=>a+(i?v(i[k]||0,i):0),0)+(S.bonus&&S.bonus[k]||0))*(1+(c?pct():pctBase())/100)); // (đồ + chỉ số điểm danh) x (1 + %). c=true thì tính cả phi phong
 const stat=k=>statX(k,true);
-const powerOf=c=>Math.round(statX('atk',c)*2+statX('def',c)*2+statX('res',c)*2+statX('hp',c)/4)+flatPower(); // lực chiến = từ chỉ số + lực chiến cố định của ngựa và ấn
+const powerOf=c=>Math.round((statX('atk',c)+statX('def',c)+statX('res',c))*LC_MUL+statX('hp',c)/LC_HP)+flatPower(); // lực chiến = (sát thương+giáp+kháng) x 2 + máu / 4 + lực chiến cố định của ngựa và ấn
 const power=()=>powerOf(true);       // lực chiến tổng (đã có phi phong)
 const rawPower=()=>powerOf(false);   // lực chiến CHƯA tính phi phong, dùng để mở phi phong (tránh vòng lặp)
+const reqOf=d=>d.req!=null?d.req:Math.round(power()*REQ_LC+S.lv*REQ_LV); // lực chiến đề nghị của hoạt động
 const cloakTier=()=>Math.min(CLOAKS.length,Math.floor(rawPower()/CLOAK_STEP)); // 0 = chưa mở
 const cloakNow=()=>{const t=cloakTier();return t?CLOAKS[t-1]:null};
 const cloak=()=>{const c=cloakNow();return c?c.p:0};                              // % chỉ số từ phi phong
@@ -332,6 +342,7 @@ const cell=(t,b,s)=>`<div class="cell"><small>${t}</small><b>${b}</b><div class=
 
 // ---- cường hóa / bán ----
 const cost=i=>Math.round(UP_COST1*Math.pow(1+UP_COST_UP,i.lv)),price=i=>15*(i.r+1)**2+i.lv*10;
+const grow=it=>['atk','def','res','hp'].forEach(k=>{if(it[k]){const r=UP_GROW[0]+Math.random()*(UP_GROW[1]-UP_GROW[0]);it[k]=Math.max(it[k]+1,Math.round(it[k]*(1+r/100)))}}); // mỗi chỉ số tăng ngẫu nhiên 65-80% so với cấp trước
 const upRate=tg=>Math.min(100,(UP_RATE[tg]||50)+S.luck); // tỉ lệ thành công = gốc + may mắn
 const find=id=>{for(const k in S.eq)if(S.eq[k]&&S.eq[k].id==id)return S.eq[k];return S.bag.find(i=>i.id==id)};
 
@@ -346,7 +357,7 @@ function run(i){tick();const d=DG[i],k=d.slot,lbl=SL[k].toLowerCase();
  if(S.ent[i]>=d.max){say('Bạn đã hết lượt: '+d.n+'.',1);return}
  S.ent[i]++;
  S.seal=Math.min(SEAL_STEP*SEAL_MAX,S.seal+SEAL_ACT);       // ấn +điểm
- const p=Math.min(.97,Math.max(.1,power()/d.req*.8)),lv0=S.lv;
+ const p=Math.min(.97,Math.max(.1,power()/reqOf(d)*.8)),lv0=S.lv;
  addExp(EXP_PER_ACT);                                         // EXP +100
  const g=gain(k);S.rep[k]=Math.min(CAP[2],S.rep[k]+g);        // danh vọng của nhánh này
  const win=Math.random()<p;let t;
@@ -385,31 +396,34 @@ function trackCell(k){const lbl=SL[k].toLowerCase(),ch=SLOTS[k].chests;let x=0;
  const lo=x?CAP[x-1]:0,tg=CAP[x],m=ch[x],pc=Math.max(0,Math.min(1,(S.rep[k]-lo)/(tg-lo)))*100,can=S.rep[k]>=tg;
  return `<div class="ms"><div class="mh"><b>${SL[k]} cấp ${x+1}</b><small>${S.rep[k]}/${tg}. Quà: ${m.sil} bạc và ${lbl} ${R[m.r].n}</small></div><div class="bar"><i style="width:${pc}%"></i></div><button data-a="chest" data-k="${k}" data-x="${x}" ${can?'':'disabled'}>${can?'Mở quà':'Chưa đủ danh vọng'}</button></div>`}
 
+// màn đặt tên nhân vật (hiện sau khi chọn phái, khi chưa có tên)
+function renderName(){if($('nm'))return;   // đang hiện ô nhập thì không vẽ lại, tránh mất chữ đang gõ
+ $('pick').innerHTML=`<section><h2>Đặt tên nhân vật</h2><p class="empty">Phái ${PHAI[S.phai].n}. Tên từ ${NAME_MIN} đến ${NAME_MAX} ký tự, gồm chữ, số, khoảng trắng, gạch dưới hoặc gạch ngang.</p><p><input id="nm" maxlength="${NAME_MAX}" placeholder="Nhập tên nhân vật" autocomplete="off" style="font:inherit;padding:5px 8px;background:transparent;color:var(--ink);border:1px solid var(--ln);border-radius:4px;width:240px"> <button data-a="name">Xác nhận</button></p><p id="nmErr" class="empty" style="color:var(--bad)"></p></section>`;
+ setTimeout(()=>{const e=$('nm');if(e)e.focus()},0)}
 // màn chọn phái (hiện khi chưa chọn phái)
 function renderPick(){$('pick').innerHTML='<section><h2>Chọn môn phái</h2><p class="empty">Mỗi phái có vũ khí đặc thù riêng. Chọn trước khi chơi, muốn đổi phải chơi lại từ đầu.</p><div class="track">'+
  Object.keys(PHAI).map(k=>{const p=PHAI[k];return `<div class="dg">${img(p.imgs&&p.imgs[0],'hico')}<b>${p.n}</b><p>${p.d} Vũ khí: ${p.names.join(', ')}.</p><button data-a="phai" data-k="${k}">Chọn phái này</button></div>`}).join('')+'</div></section>'}
 function render(){tick();
- const picked=S.phai&&PHAI[S.phai];document.querySelector('main').classList.toggle('picking',!picked);
- if(!picked){renderPick();return}
+ const picked=S.phai&&PHAI[S.phai];document.querySelector('main').classList.toggle('picking',!(picked&&S.name));
+ if(!picked){renderPick();return}          // bước 1: chọn phái
+ if(!S.name){renderName();return}          // bước 2: đặt tên nhân vật
  const cd=S.ci.last===dayKey();
- $('top').innerHTML=`<span>Phái <b>${PHAI[S.phai].n}</b></span><span style="margin-left:16px">Bạc <b>${S.sil}</b></span> <button style="margin-left:16px" data-a="checkin" ${cd?'disabled':''}>${cd?'Đã điểm danh, chuỗi '+S.ci.streak+' ngày':'Điểm danh'}</button>`;
+ $('top').innerHTML=`<span><b>${esc(S.name)}</b> (${PHAI[S.phai].n})</span><span style="margin-left:16px">Bạc <b>${S.sil}</b></span> <button style="margin-left:16px" data-a="checkin" ${cd?'disabled':''}>${cd?'Đã điểm danh, chuỗi '+S.ci.streak+' ngày':'Điểm danh'}</button>`;
  $('track').innerHTML=SK.map(trackCell).join('');
  const h=horse(),st=stars(),nh=HORSES.slice().reverse().find(x=>x.lv>S.lv),cl=cloakNow(),ct=cloakTier();
  const expPc=S.lv>=LV_MAX?100:S.exp/need(S.lv)*100;
  $('info').innerHTML=
   cell('Cấp nhân vật','Cấp '+S.lv,`<div class="bar"><i style="width:${expPc}%"></i></div>`+(S.lv>=LV_MAX?'Cấp tối đa':`EXP ${S.exp}/${need(S.lv)}. Mỗi hoạt động +${EXP_PER_ACT} EXP`))+
-  cell('Lực chiến',power(),`Từ đồ ${power()-flatPower()}, bonus ngựa +${horsePw()}, ấn +${sealPw()}. Chỉ số +${(h?h.p:0)+st*SEAL_PCT+cloak()}% (ngựa ${h?h.p:0}%, ấn ${st*SEAL_PCT}%, phi phong ${cloak()}%)`)+
-  cell('Chỉ số','Sát thương '+stat('atk'),`Máu ${stat('hp')}, Giáp ${stat('def')}, Kháng ${stat('res')}`)+
   cell('Ngựa',(h?img(h.img,'hico'):'')+(h?h.n:'Chưa có'),(h?`+${h.p}% chỉ số, +${h.pw} lực chiến. `:'Chưa có ngựa. ')+(nh?`Còn ${nh.lv-S.lv} cấp tới ${nh.n} (cấp ${nh.lv}: +${nh.p}% chỉ số, +${nh.pw} lực chiến).`:'Đã ở bậc cao nhất.'))+
   cell('Ấn',img(sealImg(),'hico')+`${st}/${SEAL_MAX} sao`,st>=SEAL_MAX?`Đã tối đa, +${st*SEAL_PCT}% chỉ số, +${sealPw()} lực chiến`:`${S.seal%SEAL_STEP}/${SEAL_STEP} điểm tới sao kế. Mỗi sao +${SEAL_PCT}% chỉ số và +${SEAL_PW_STAR} lực chiến (đang +${st*SEAL_PCT}%, +${sealPw()}). Mỗi hoạt động +${SEAL_ACT} điểm`)+
   cell('Điểm danh','Chuỗi '+streakNow()+' ngày',`Chỉ số cộng thêm: ${Object.keys(STAT_NAME).map(k=>STAT_NAME[k]+' +'+(S.bonus[k]||0)).join(', ')}. Quà ấn tháng này: ${S.ci.mon===monKey()?S.ci.seal:0}/${CI_SEAL_MAX}`)+
   cell('May mắn cường hóa','+'+S.luck+'%',`Mỗi lần thất bại +${UP_LUCK}%, cường hóa thành công thì về 0%`)+
   cell('Lượt hôm nay','',DG.map((d,i)=>`${d.n}: còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt`).join('<br>'))+
   cell('Phi phong',cl?img(cl.img,'hico')+cl.n:img(CLOAK_IMG,'hico')+'Chưa mở',cl?`+${cl.p}% chỉ số. Bậc ${ct}/${CLOAKS.length}. `+(ct<CLOAKS.length?`Đạt lực chiến ${(ct+1)*CLOAK_STEP} để lên ${CLOAKS[ct].n}.`:'Đã ở bậc cao nhất.'):`Cần lực chiến ${CLOAK_STEP} (hiện ${rawPower()}).`);
- $('char').innerHTML=`<p>Lực chiến <b style="color:var(--gold);font-size:20px">${power()}</b></p>`+
+ $('char').innerHTML=cell('Lực chiến',power(),`Từ đồ ${power()-flatPower()}, bonus ngựa +${horsePw()}, ấn +${sealPw()}. Chỉ số +${(h?h.p:0)+st*SEAL_PCT+cloak()}% (ngựa ${h?h.p:0}%, ấn ${st*SEAL_PCT}%, phi phong ${cloak()}%)`)+
   SK.map(k=>`<div class="slot">${SL[k]}</div>`+(S.eq[k]?card(S.eq[k],1):'<div class="empty">Chưa trang bị</div>')).join('');
- $('dg').innerHTML=DG.map((d,i)=>{const p=Math.round(Math.min(.97,Math.max(.1,power()/d.req*.8))*100);
-  return `<div class="dg">${img(d.img,'banner')}<b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${d.req}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt đợt này.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
+ $('dg').innerHTML=DG.map((d,i)=>{const p=Math.round(Math.min(.97,Math.max(.1,power()/reqOf(d)*.8))*100);
+  return `<div class="dg">${img(d.img,'banner')}<b>${d.n}</b><p>${d.d} Khuyến nghị lực chiến ${reqOf(d)}. Tỉ lệ thắng ${p}%. Thưởng ${gain(d.slot)} danh vọng ${SL[d.slot].toLowerCase()}, ${d.sil} bạc, ${EXP_PER_ACT} EXP, có thể rơi ${SL[d.slot].toLowerCase()}. Còn ${Math.max(0,d.max-S.ent[i])}/${d.max} lượt đợt này.${d.days?`<br>Mở vào: ${openText(d)}${isOpen(d)?'':' (hôm nay chưa mở)'}`:''}</p><button data-a="run" data-i="${i}" ${S.ent[i]>=d.max||!isOpen(d)?'disabled':''}>Đi ngay</button></div>`}).join('');
  $('bag').innerHTML=`<p class="empty">${S.bag.length}/${BAG} món</p>`+(S.bag.length?S.bag.map(i=>card(i,0)).join(''):'<div class="empty">Trống. Đi làm hoạt động để tìm trang bị.</div>');
  $('log').innerHTML=S.log.map(t=>`<li>${t}</li>`).join('')||'<li>Chưa có gì xảy ra.</li>';
  $('rs').textContent='Chơi lại từ đầu';armed=false;save()}
@@ -417,18 +431,23 @@ function render(){tick();
 /* =====================================================================
    6. NÚT BẤM
    ===================================================================== */
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='nm'){const b=document.querySelector('[data-a=name]');if(b)b.click()}}); // bấm Enter để xác nhận tên
 document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(!b||b.disabled)return;const a=b.dataset.a,id=b.dataset.id;
  if(a==='reset'){if(!armed){armed=true;b.textContent='Bấm lại để xóa toàn bộ tiến trình';return}fresh();render();say('Bắt đầu hành trình mới.');return}
  if(a==='phai'){if(PHAI[b.dataset.k]){S.phai=b.dataset.k;if(!S.eq.weapon)S.eq.weapon=mk('weapon',0);say('Bạn đã chọn phái '+PHAI[S.phai].n+'.')}}
+ else if(a==='name'){const v=($('nm').value||'').trim().replace(/\s+/g,' ');
+  if(v.length<NAME_MIN||v.length>NAME_MAX){$('nmErr').textContent=`Tên phải từ ${NAME_MIN} đến ${NAME_MAX} ký tự.`;return}
+  if(!/^[\p{L}\p{N} _-]+$/u.test(v)){$('nmErr').textContent='Tên chỉ gồm chữ, số, khoảng trắng, gạch dưới hoặc gạch ngang.';return}
+  S.name=v;say(`Chào mừng ${v} của phái ${PHAI[S.phai].n}.`)}
  else if(a==='newday'){S.ent=Z();say('Sang ngày mới: lượt hoạt động đã làm mới.')}
  else if(a==='exp'){const l0=S.lv;addExp(10000);say('Thử nghiệm: +10000 EXP.'+(S.lv>l0?` Lên cấp ${S.lv}.`:''))}
  else if(a==='rep'){SK.forEach(k=>S.rep[k]=Math.min(CAP[2],S.rep[k]+500));say('Thử nghiệm: +500 danh vọng cho mọi nhánh.')}
  else if(a==='run')run(+b.dataset.i);
  else if(a==='eq'){const k=S.bag.findIndex(i=>i.id==id);if(k<0)return;const it=S.bag.splice(k,1)[0],old=S.eq[it.slot];if(old)S.bag.push(old);S.eq[it.slot]=it}
  else if(a==='up'){const it=find(id);if(it&&it.lv<UP_MAX&&S.sil>=cost(it)){S.sil-=cost(it);const tg=it.lv+1;
-  if(tg<UP_SAFE){it.lv=tg;say(`Cường hóa ${it.name} lên +${tg}.`)}        // cấp thấp: luôn thành công
+  if(tg<UP_SAFE){it.lv=tg;grow(it);say(`Cường hóa ${it.name} lên +${tg}: ${stats(it)}.`)}        // cấp thấp: luôn thành công
   else{const rate=upRate(tg);
-   if(Math.random()*100<rate){it.lv=tg;S.luck=0;say(`Cường hóa thành công ${it.name} lên +${tg}! May mắn về 0%.`)}
+   if(Math.random()*100<rate){it.lv=tg;grow(it);S.luck=0;say(`Cường hóa thành công ${it.name} lên +${tg}: ${stats(it)}. May mắn về 0%.`)}
    else{S.luck+=UP_LUCK;say(`Cường hóa thất bại (tỉ lệ ${rate}%), mất bạc nhưng không tụt cấp. May mắn +${UP_LUCK}%, hiện ${S.luck}%.`,1)}}}}
  else if(a==='checkin')checkin();
  else if(a==='sell'){const k=S.bag.findIndex(i=>i.id==id);if(k>=0){S.sil+=price(S.bag[k]);S.bag.splice(k,1)}}
